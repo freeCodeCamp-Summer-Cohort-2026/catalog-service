@@ -147,7 +147,7 @@ class ProductControllerTest {
                 .andExpect(status().isNotFound())
                 .andExpectAll(
                         jsonPath("$.timestamp").exists(),
-                        jsonPath("$.status", is("404")),
+                        jsonPath("$.status", is(404)),
                         jsonPath("$.error", is("Not Found")),
                         jsonPath("$.message").exists(),
                         jsonPath("$.details").exists());
