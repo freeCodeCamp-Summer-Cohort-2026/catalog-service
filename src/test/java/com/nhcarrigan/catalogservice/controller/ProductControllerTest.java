@@ -144,7 +144,7 @@ class ProductControllerTest {
     @Test
     void getUnknownProductReturns404WithCorrectShape() throws Exception {
         mockMvc.perform(get("/api/products/999999"))
-                .andExpect(status().is(404))
+                .andExpect(status().isNotFound())
                 .andExpectAll(
                         jsonPath("$.timestamp").exists(),
                         jsonPath("$.status", is("404")),
