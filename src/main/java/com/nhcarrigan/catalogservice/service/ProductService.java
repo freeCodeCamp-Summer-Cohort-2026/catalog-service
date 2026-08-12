@@ -64,6 +64,11 @@ public class ProductService {
         return productRepository.findByNameContainingIgnoreCase(name);
     }
 
+    @Transactional(readOnly = true)
+    public List<String> listCategories(){
+        return productRepository.listCategories();
+    }
+
     /**
      * Creates and persists a new product.
      *
