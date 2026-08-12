@@ -13,7 +13,7 @@ public class LoggerRegistration {
     public FilterRegistrationBean<LoggingFilter> logFilter() {
         FilterRegistrationBean<LoggingFilter> registrationBean = new FilterRegistrationBean<>();
         registrationBean.setFilter(new LoggingFilter());
-        registrationBean.addUrlPatterns("/api/products");
+        registrationBean.addUrlPatterns("/api/products", "/api/products/*");
         return registrationBean;
     }
 }
