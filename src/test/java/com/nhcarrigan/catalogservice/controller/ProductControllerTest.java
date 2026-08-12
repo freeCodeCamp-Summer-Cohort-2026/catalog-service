@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -20,6 +21,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import com.nhcarrigan.catalogservice.repository.ProductRepository;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -94,6 +96,13 @@ class ProductControllerTest {
     void getUnknownProductReturns404() throws Exception {
         mockMvc.perform(get("/api/products/999999"))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void getCategoriesReturnsDistinctCategories() throws Exception{
+        mockMvc.perform(get("/api/products/categories"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", containsInAnyOrder("Electronics", "Office Supplies", "Furniture")));
     }
 
     @Test
