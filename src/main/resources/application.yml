@@ -20,7 +20,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,httpexchanges
+        include: health,info
   endpoint:
     health:
       show-details: when-authorized
