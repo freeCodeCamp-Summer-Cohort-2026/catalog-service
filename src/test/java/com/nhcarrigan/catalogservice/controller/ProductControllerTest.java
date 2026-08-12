@@ -13,8 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -103,6 +102,17 @@ class ProductControllerTest {
         mockMvc.perform(get("/api/products/categories"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", containsInAnyOrder("Electronics", "Office Supplies", "Furniture")));
+    }
+
+    @Autowired
+    private ProductRepository productRepository;
+
+    @Test
+    void getEmptyCategoriesReturnsEmpty() throws Exception{
+        productRepository.deleteAll();
+        mockMvc.perform(get("/api/products/categories"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", empty()));
     }
 
     @Test
