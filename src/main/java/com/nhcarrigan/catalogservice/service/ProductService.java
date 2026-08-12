@@ -64,6 +64,11 @@ public class ProductService {
         return productRepository.findByNameContainingIgnoreCase(name);
     }
 
+    /**
+     * Returns every category currently in use across all products
+     *
+     * @return the distinct category values, or an empty list if the catalog has no products.
+     */
     @Transactional(readOnly = true)
     public List<String> listCategories(){
         return productRepository.listCategories();
