@@ -194,9 +194,6 @@ class ProductControllerTest {
                 .andExpect(jsonPath("$.error", is("Bad Request")));
     }
 
-    @Autowired
-    private ProductRepository productRepository;
-
     @Test
     void getEmptyCategoriesReturnsEmpty() throws Exception{
         productRepository.deleteAll();
