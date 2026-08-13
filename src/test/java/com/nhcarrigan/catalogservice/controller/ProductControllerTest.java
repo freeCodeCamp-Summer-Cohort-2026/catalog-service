@@ -4,9 +4,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nhcarrigan.catalogservice.dto.ProductRequest;
 import com.nhcarrigan.catalogservice.dto.StockAdjustmentRequest;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
@@ -176,5 +179,26 @@ class ProductControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.description", is("This is a pilot Description for the product.")));
+    }
+
+    @Test
+    @ExtendWith(OutputCaptureExtension.class)
+    void logMethodPathStatusOnProductRoutes(CapturedOutput output) throws Exception {
+        String expectedLogGet = "[GET] /api/products: 200\n";
+        mockMvc.perform(get("/api/products"));
+        assert output.getOut().endsWith(expectedLogGet)
+                : "Requests against /api/products should produce logs (GET)";
+
+        String expectedLogPost = "[POST] /api/products: 201\n";
+        ProductRequest request = validRequest("CTRL-SKU-" + System.nanoTime());
+        mockMvc.perform(post("/api/products")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)));
+        assert output.getOut().endsWith(expectedLogPost)
+                : "Requests against /api/products should produce logs (POST)";
+
+        mockMvc.perform(get("/actuator/health"));
+        assert output.getOut().endsWith(expectedLogPost)
+                : "Requests against routes other than /api/products should not produce logs";
     }
 }
