@@ -306,147 +306,149 @@ class ProductControllerTest {
         mockMvc.perform(get("/actuator/health"));
         assert output.getOut().endsWith(expectedLogPost)
                 : "Requests against routes other than /api/products should not produce logs";
-@Test
-void bulkAdjustStockReturnsUpdatedProducts() throws Exception {
-    Product firstProduct = createTestProduct("BULK-TEST-1", 20);
-    Product secondProduct = createTestProduct("BULK-TEST-2", 10);
+    
+    }
+    @Test
+    void bulkAdjustStockReturnsUpdatedProducts() throws Exception {
+        Product firstProduct = createTestProduct("BULK-TEST-1", 20);
+        Product secondProduct = createTestProduct("BULK-TEST-2", 10);
 
-    String request = """
-            [
-                {
-                    "productId": %d,
-                    "delta": 5
-                },
-                {
-                    "productId": %d,
-                    "delta": -3
-                }
-            ]
-            """.formatted(firstProduct.getId(), secondProduct.getId());
+        String request = """
+                [
+                    {
+                        "productId": %d,
+                        "delta": 5
+                    },
+                    {
+                        "productId": %d,
+                        "delta": -3
+                    }
+                ]
+                """.formatted(firstProduct.getId(), secondProduct.getId());
 
-    mockMvc.perform(patch("/api/products/stock/bulk")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(request))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$", hasSize(2)))
-            .andExpect(jsonPath("$[0].id", is(firstProduct.getId().intValue())))
-            .andExpect(jsonPath("$[0].stockQuantity", is(25)))
-            .andExpect(jsonPath("$[1].id", is(secondProduct.getId().intValue())))
-            .andExpect(jsonPath("$[1].stockQuantity", is(7)));
-}
+        mockMvc.perform(patch("/api/products/stock/bulk")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(2)))
+                .andExpect(jsonPath("$[0].id", is(firstProduct.getId().intValue())))
+                .andExpect(jsonPath("$[0].stockQuantity", is(25)))
+                .andExpect(jsonPath("$[1].id", is(secondProduct.getId().intValue())))
+                .andExpect(jsonPath("$[1].stockQuantity", is(7)));
+    }
 
-@Test
-void bulkAdjustStockRejectsEmptyRequest() throws Exception {
-    mockMvc.perform(patch("/api/products/stock/bulk")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content("[]"))
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.error", is("Validation Failed")));
-}
+    @Test
+    void bulkAdjustStockRejectsEmptyRequest() throws Exception {
+        mockMvc.perform(patch("/api/products/stock/bulk")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("[]"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error", is("Validation Failed")));
+    }
 
-@Test
-void bulkAdjustStockRejectsMissingProductId() throws Exception {
-    String request = """
-            [
-                {
-                    "delta": 5
-                }
-            ]
-            """;
+    @Test
+    void bulkAdjustStockRejectsMissingProductId() throws Exception {
+        String request = """
+                [
+                    {
+                        "delta": 5
+                    }
+                ]
+                """;
 
-    mockMvc.perform(patch("/api/products/stock/bulk")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(request))
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.error", is("Validation Failed")));
-}
+        mockMvc.perform(patch("/api/products/stock/bulk")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error", is("Validation Failed")));
+    }
 
-@Test
-void bulkAdjustStockRejectsMissingDelta() throws Exception {
-    String request = """
-            [
-                {
-                    "productId": 1
-                }
-            ]
-            """;
+    @Test
+    void bulkAdjustStockRejectsMissingDelta() throws Exception {
+        String request = """
+                [
+                    {
+                        "productId": 1
+                    }
+                ]
+                """;
 
-    mockMvc.perform(patch("/api/products/stock/bulk")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(request))
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.error", is("Validation Failed")));
-}
+        mockMvc.perform(patch("/api/products/stock/bulk")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error", is("Validation Failed")));
+    }
 
-@Test
-void bulkAdjustStockReturns422ForInsufficientStock() throws Exception {
-    String request = """
-            [
-                {
-                    "productId": 1,
-                    "delta": -999
-                }
-            ]
-            """;
+    @Test
+    void bulkAdjustStockReturns422ForInsufficientStock() throws Exception {
+        String request = """
+                [
+                    {
+                        "productId": 1,
+                        "delta": -999
+                    }
+                ]
+                """;
 
-    mockMvc.perform(patch("/api/products/stock/bulk")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(request))
-            .andExpect(status().isUnprocessableEntity())
-            .andExpect(jsonPath("$.error", is("Unprocessable Entity")));
-}
+        mockMvc.perform(patch("/api/products/stock/bulk")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error", is("Unprocessable Entity")));
+    }
 
-@Test
-void bulkAdjustStockReturns404ForUnknownProduct() throws Exception {
-    String request = """
-            [
-                {
-                    "productId": 999999,
-                    "delta": 5
-                }
-            ]
-            """;
+    @Test
+    void bulkAdjustStockReturns404ForUnknownProduct() throws Exception {
+        String request = """
+                [
+                    {
+                        "productId": 999999,
+                        "delta": 5
+                    }
+                ]
+                """;
 
-    mockMvc.perform(patch("/api/products/stock/bulk")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(request))
-            .andExpect(status().isNotFound())
-            .andExpect(jsonPath("$.error", is("Not Found")));
-}
+        mockMvc.perform(patch("/api/products/stock/bulk")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error", is("Not Found")));
+    }
 
-@Test
-void bulkAdjustStockRollsBackEntireBatchWhenOneAdjustmentFails() throws Exception {
-    Product firstProduct = createTestProduct("BULK-ROLLBACK-1", 20);
-    Product secondProduct = createTestProduct("BULK-ROLLBACK-2", 10);
+    @Test
+    void bulkAdjustStockRollsBackEntireBatchWhenOneAdjustmentFails() throws Exception {
+        Product firstProduct = createTestProduct("BULK-ROLLBACK-1", 20);
+        Product secondProduct = createTestProduct("BULK-ROLLBACK-2", 10);
 
-    String request = """
-            [
-                {
-                    "productId": %d,
-                    "delta": 5
-                },
-                {
-                    "productId": %d,
-                    "delta": -11
-                }
-            ]
-            """.formatted(firstProduct.getId(), secondProduct.getId());
+        String request = """
+                [
+                    {
+                        "productId": %d,
+                        "delta": 5
+                    },
+                    {
+                        "productId": %d,
+                        "delta": -11
+                    }
+                ]
+                """.formatted(firstProduct.getId(), secondProduct.getId());
 
-    mockMvc.perform(patch("/api/products/stock/bulk")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(request))
-            .andExpect(status().isUnprocessableEntity())
-            .andExpect(jsonPath("$.error", is("Unprocessable Entity")));
+        mockMvc.perform(patch("/api/products/stock/bulk")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error", is("Unprocessable Entity")));
 
-    Product firstReloaded =
-            productRepository.findById(firstProduct.getId()).orElseThrow();
+        Product firstReloaded =
+                productRepository.findById(firstProduct.getId()).orElseThrow();
 
-    Product secondReloaded =
-            productRepository.findById(secondProduct.getId()).orElseThrow();
+        Product secondReloaded =
+                productRepository.findById(secondProduct.getId()).orElseThrow();
 
-    assertThat(firstReloaded.getStockQuantity(), is(20));
-    assertThat(secondReloaded.getStockQuantity(), is(10));
-}
+        assertThat(firstReloaded.getStockQuantity(), is(20));
+        assertThat(secondReloaded.getStockQuantity(), is(10));
+    }
 
 
     @Test
