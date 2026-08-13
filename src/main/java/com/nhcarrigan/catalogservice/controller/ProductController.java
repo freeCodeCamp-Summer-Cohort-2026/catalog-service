@@ -1,10 +1,16 @@
 package com.nhcarrigan.catalogservice.controller;
 
+import com.nhcarrigan.catalogservice.dto.BulkStockAdjustmentRequest;
 import com.nhcarrigan.catalogservice.dto.ProductRequest;
+import com.nhcarrigan.catalogservice.dto.ProductPageResponse;
 import com.nhcarrigan.catalogservice.dto.StockAdjustmentRequest;
 import com.nhcarrigan.catalogservice.entity.Product;
+import com.nhcarrigan.catalogservice.exception.InvalidSearchCriteriaException;
 import com.nhcarrigan.catalogservice.service.ProductService;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -38,25 +44,51 @@ public class ProductController {
     }
 
     /**
-     * Returns every product in the catalog.
+     * Returns a paginated list of products in the catalog.
      *
-     * @return the full list of products
+     * @param pageable the pagination information (page number, size, sort)
+     * @return a paginated response containing products and pagination metadata
      */
     @GetMapping
-    public List<Product> getAll() {
-        return productService.findAll();
+    public ProductPageResponse getAll(
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ProductPageResponse.from(productService.findAll(pageable));
     }
 
     /**
-     * Searches for products whose name contains the given substring,
-     * case-insensitive.
+     * Searches for products by a name substring or a category substring,
+     * both case-insensitive. The two filters are mutually exclusive: pass
+     * exactly one. Providing both, even if one is blank, is
+     * rejected with a {@code 400}.
      *
-     * @param name the substring to match against product names
-     * @return matching products, or an empty list if none match
+     * @param name an optional substring to match against product names
+     * @param category an optional substring to match against product categories
+     * @return matching products, or an empty list if none match or no filter is given
+     * @throws com.nhcarrigan.catalogservice.exception.InvalidSearchCriteriaException
+     *         if both name and category are provided
      */
     @GetMapping("/search")
-    public List<Product> search(@RequestParam String name) {
-        return productService.searchByName(name);
+    public List<Product> search(@RequestParam(required = false) String name, @RequestParam(required = false) String category) {
+        if (name != null && category != null) {
+            throw new InvalidSearchCriteriaException();
+        }
+        if (name != null && !name.isBlank()) {
+            return productService.searchByName(name);
+        }
+        if (category != null && !category.isBlank()) {
+            return productService.searchByCategory(category);
+        }
+        return List.of();
+    }
+
+    /**
+     * Returns every category currently in use across all products
+     *
+     * @return the distinct category values, or an empty list if the catalog has no products.
+     */
+    @GetMapping("/categories")
+    public List<String> getCategories() {
+        return productService.listCategories();
     }
 
     /**
@@ -132,5 +164,18 @@ public class ProductController {
     @PatchMapping("/{id}/stock")
     public Product adjustStock(@PathVariable Long id, @Valid @RequestBody StockAdjustmentRequest request) {
         return productService.adjustStock(id, request.getDelta());
+    }
+
+    /**
+     * Applies multiple stock adjustments as one atomic operation.
+     *
+     * @param adjustments the stock adjustments to apply
+     * @return the products with their updated stock quantities
+     */
+    @PatchMapping("/stock/bulk")
+    public List<Product> bulkAdjustStock(
+            @NotEmpty(message = "At least one stock adjustment is required")
+            @RequestBody List<@Valid BulkStockAdjustmentRequest> adjustments) {
+        return productService.bulkAdjustStock(adjustments);
     }
 }
