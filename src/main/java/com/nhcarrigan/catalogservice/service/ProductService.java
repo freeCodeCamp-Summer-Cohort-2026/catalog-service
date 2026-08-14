@@ -236,27 +236,28 @@ public class ProductService {
      *<p>If neither parameter is supplied, then returns all products</p>
      * @param minPrice the minimum price filter for products or null to leave that bound unfiltered
      * @param maxPrice the maximum price filter for products or null to leave that bound unfiltered
-     * @return the products in the given range
+     * @param pageable the pagination information (page number, size, sort)
+     * @return a page containing the requested products and pagination metadata
      * @throws com.nhcarrigan.catalogservice.exception.InvalidPriceRangeException
      *         if the given price range is reversed
      */
     @Transactional(readOnly = true)
-    public List<Product> filterByPrice(BigDecimal minPrice, BigDecimal maxPrice){
+    public Page<Product> filterByPrice(BigDecimal minPrice, BigDecimal maxPrice, Pageable pageable){
         if(minPrice != null && maxPrice != null){
             //both supplied
             if(minPrice.compareTo(maxPrice) > 0) {
                 throw new InvalidPriceRangeException(minPrice, maxPrice);
             }
-            return productRepository.findByPriceBetween(minPrice, maxPrice);
+            return productRepository.findByPriceBetween(minPrice, maxPrice, pageable);
 
         } else if (minPrice != null) {
             // only a floor
-            return productRepository.findByPriceGreaterThanEqual(minPrice);
+            return productRepository.findByPriceGreaterThanEqual(minPrice, pageable);
         } else if (maxPrice != null) {
             // only a ceiling
-            return productRepository.findByPriceLessThanEqual(maxPrice);
+            return productRepository.findByPriceLessThanEqual(maxPrice, pageable);
         } else{
-            return productRepository.findAll();
+            return productRepository.findAll(pageable);
         }
     }
 }
