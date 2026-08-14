@@ -5,6 +5,7 @@ import com.nhcarrigan.catalogservice.dto.BulkStockAdjustmentRequest;
 import com.nhcarrigan.catalogservice.entity.Product;
 import com.nhcarrigan.catalogservice.exception.DuplicateSkuException;
 import com.nhcarrigan.catalogservice.exception.InsufficientStockException;
+import com.nhcarrigan.catalogservice.exception.InvalidPriceRangeException;
 import com.nhcarrigan.catalogservice.exception.ProductNotFoundException;
 import com.nhcarrigan.catalogservice.repository.ProductRepository;
 import org.springframework.data.domain.Page;
@@ -12,6 +13,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -226,5 +228,35 @@ public class ProductService {
         }
 
         return new ArrayList<>(productsById.values());
+    }
+
+    /**
+     * Filters products by a given price range.
+     *
+     *<p>If neither parameter is supplied, then returns all products</p>
+     * @param minPrice the minimum price filter for products or null to leave that bound unfiltered
+     * @param maxPrice the maximum price filter for products or null to leave that bound unfiltered
+     * @return the products in the given range
+     * @throws com.nhcarrigan.catalogservice.exception.InvalidPriceRangeException
+     *         if the given price range is reversed
+     */
+    @Transactional(readOnly = true)
+    public List<Product> filterByPrice(BigDecimal minPrice, BigDecimal maxPrice){
+        if(minPrice != null && maxPrice != null){
+            //both supplied
+            if(minPrice.compareTo(maxPrice) > 0) {
+                throw new InvalidPriceRangeException(minPrice, maxPrice);
+            }
+            return productRepository.findByPriceBetween(minPrice, maxPrice);
+
+        } else if (minPrice != null) {
+            // only a floor
+            return productRepository.findByPriceGreaterThanEqual(minPrice);
+        } else if (maxPrice != null) {
+            // only a ceiling
+            return productRepository.findByPriceLessThanEqual(maxPrice);
+        } else{
+            return productRepository.findAll();
+        }
     }
 }
