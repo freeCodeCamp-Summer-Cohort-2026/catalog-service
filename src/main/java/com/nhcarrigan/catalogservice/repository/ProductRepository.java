@@ -17,6 +17,8 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     List<Product> findByCategoryContainingIgnoreCase(String category);
 
+    List<Product> fingBySku(String sku);
+
     @Query("SELECT DISTINCT p.category FROM Product p")
     List<String> listCategories();
 }

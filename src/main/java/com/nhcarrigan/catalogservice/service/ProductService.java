@@ -60,6 +60,20 @@ public class ProductService {
     }
 
     /**
+     * Retrieves a single product by its SKU.
+     *
+     * @param sku the product sku
+     * @return the matching product
+     * @throws com.nhcarrigan.catalogservice.exception.ProductNotFoundException
+     *         if no product exists with the given sku
+     */
+    @Transactional(readOnly = true)
+    public Product findBySku(String sku){
+        return productRepository.findbySku(sku)
+            .orElseThrow(() -> new ProductNotFoundException(sku));
+    }
+    
+    /**
      * Searches for products whose name contains the given substring,
      * case-insensitive.
      *
