@@ -1,6 +1,7 @@
 package com.nhcarrigan.catalogservice.controller;
 
 import com.nhcarrigan.catalogservice.dto.BulkStockAdjustmentRequest;
+import com.nhcarrigan.catalogservice.dto.ProductCreationResponse;
 import com.nhcarrigan.catalogservice.dto.ProductRequest;
 import com.nhcarrigan.catalogservice.dto.ProductPageResponse;
 import com.nhcarrigan.catalogservice.dto.StockAdjustmentRequest;
@@ -122,9 +123,15 @@ public class ProductController {
      *         if a product with the same SKU already exists
      */
     @PostMapping
-    public ResponseEntity<Product> create(@Valid @RequestBody ProductRequest request) {
+    public ResponseEntity<ProductCreationResponse> create(@Valid @RequestBody ProductRequest request) {
+        boolean isDuplicateName = !productService.searchByName(request.getName()).isEmpty();
+
         Product created = productService.create(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+
+        ProductCreationResponse pcr = new ProductCreationResponse(created,
+                isDuplicateName ? "Duplicate Name" : null);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(pcr);
     }
 
     /**
