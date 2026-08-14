@@ -20,6 +20,8 @@ import java.math.BigDecimal;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
+import static org.mockito.ArgumentMatchers.isNotNull;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -535,5 +537,26 @@ class ProductControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error", is("Bad Request")))
                 .andExpect(jsonPath("$.message", is("Cannot filter using reversed price range: minimum 60 is greater than maximum 18")));
+    }
+
+    @Test
+    void creationWithDupeNameProducesWarning() throws Exception {
+        String dupeName = "Test Duplicate Product Name";
+        
+        ProductRequest request1 = validRequest("CTRL-SKU-" + System.nanoTime());
+        request1.setName(dupeName);
+
+        mockMvc.perform(post("/api/products")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request1)))
+                .andExpect(jsonPath("$.warning").doesNotExist());
+        
+        ProductRequest request2 = validRequest("CTRL-SKU-" + System.nanoTime());
+        request2.setName(dupeName);
+
+        mockMvc.perform(post("/api/products")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request2)))
+                .andExpect(jsonPath("$.warning").exists());
     }
 }
