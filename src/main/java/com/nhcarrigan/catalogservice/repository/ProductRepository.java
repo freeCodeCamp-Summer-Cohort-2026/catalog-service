@@ -9,15 +9,13 @@ import java.util.Optional;
 
 public interface ProductRepository extends JpaRepository<Product, Long> {
 
-    Optional<Product> getBySku(String sku);
-
     boolean existsBySku(String sku);
 
     List<Product> findByNameContainingIgnoreCase(String name);
 
     List<Product> findByCategoryContainingIgnoreCase(String category);
 
-    List<Product> fingBySku(String sku);
+    Optional<Product> findBySku(String sku);
 
     @Query("SELECT DISTINCT p.category FROM Product p")
     List<String> listCategories();

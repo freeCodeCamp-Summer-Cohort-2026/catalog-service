@@ -105,6 +105,19 @@ public class ProductController {
     }
 
     /**
+     * Retrieves a single product by its SKU.
+     *
+     * @param sku the product sku
+     * @return the matching product
+     * @throws com.nhcarrigan.catalogservice.exception.ProductNotFoundException
+     *         if no product exists with the given sku
+     */
+    @GetMapping("/{sku}")
+    public Product getBySku(@PathVariable String sku){
+        return productService.findBySku(sku);
+    }
+
+    /**
      * Creates a new product.
      *
      * @param request the product fields to create; validated via

@@ -69,7 +69,7 @@ public class ProductService {
      */
     @Transactional(readOnly = true)
     public Product findBySku(String sku){
-        return productRepository.findbySku(sku)
+        return productRepository.findBySku(sku)
             .orElseThrow(() -> new ProductNotFoundException(sku));
     }
     

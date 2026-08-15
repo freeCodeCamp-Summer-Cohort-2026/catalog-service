@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.beans.Transient;
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -74,6 +75,18 @@ class ProductServiceTest {
 
         assertThatThrownBy(() -> productService.create(duplicate))
                 .isInstanceOf(DuplicateSkuException.class);
+    }
+
+    @Test
+    void findBySkuSuccess(){
+        assertThat(productService.findBySku(testProduct.getSku()).getId()) 
+                .isEqualTo(testProduct.getId());
+    }
+
+    @Test
+    void findBySkuThrowsWhenMissing(){
+        assertThatThrownBy(() -> productService.findBySku(1))
+        .isInstanceOf(ProductNotFoundException.class);
     }
 
     @Test
