@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nhcarrigan.catalogservice.dto.ProductRequest;
 import com.nhcarrigan.catalogservice.dto.StockAdjustmentRequest;
 import com.nhcarrigan.catalogservice.entity.Product;
+import com.nhcarrigan.catalogservice.entity.StockAdjustmentLog;
 import com.nhcarrigan.catalogservice.repository.ProductRepository;
 import java.math.BigDecimal;
 import org.junit.jupiter.api.Test;
@@ -288,6 +289,96 @@ class ProductControllerTest {
                 .content(objectMapper.writeValueAsString(adjustment)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.stockQuantity", is(10)));
+  }
+
+  @Test
+  void getStockHistoryReturnsAdjustmentHistory() throws Exception {
+    ProductRequest request = validRequest("CTRL-SKU-" + System.nanoTime());
+    request.setStockQuantity(10);
+
+    String body =
+            mockMvc
+                    .perform(
+                            post("/api/products")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isCreated())
+                    .andReturn()
+                    .getResponse()
+                    .getContentAsString();
+
+    Long id = objectMapper.readTree(body).get("id").asLong();
+
+    StockAdjustmentRequest adjustment = new StockAdjustmentRequest();
+    adjustment.setDelta(5);
+
+    mockMvc
+            .perform(
+                    patch("/api/products/{id}/stock", id)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(adjustment)))
+            .andExpect(status().isOk());
+
+    mockMvc
+            .perform(get("/api/products/{id}/stock-history", id))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$", hasSize(1)))
+            .andExpect(jsonPath("$[0].productId", is(id.intValue())))
+            .andExpect(jsonPath("$[0].delta", is(5)))
+            .andExpect(jsonPath("$[0].resultingQuantity", is(15)))
+            .andExpect(jsonPath("$[0].timestamp").exists());
+  }
+
+  @Test
+  void getStockHistoryReturnsNewestFirst() throws Exception {
+    ProductRequest request = validRequest("CTRL-SKU-" + System.nanoTime());
+    request.setStockQuantity(10);
+
+    String body =
+            mockMvc
+                    .perform(
+                            post("/api/products")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isCreated())
+                    .andReturn()
+                    .getResponse()
+                    .getContentAsString();
+
+    Long id = objectMapper.readTree(body).get("id").asLong();
+
+    StockAdjustmentRequest firstAdjustment = new StockAdjustmentRequest();
+    firstAdjustment.setDelta(5);
+
+    mockMvc.perform(
+            patch("/api/products/{id}/stock", id)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(firstAdjustment)));
+
+    StockAdjustmentRequest secondAdjustment = new StockAdjustmentRequest();
+    secondAdjustment.setDelta(-3);
+
+    mockMvc.perform(
+            patch("/api/products/{id}/stock", id)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(secondAdjustment)));
+
+    mockMvc
+            .perform(get("/api/products/{id}/stock-history", id))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$", hasSize(2)))
+            .andExpect(jsonPath("$[0].delta", is(-3)))
+            .andExpect(jsonPath("$[0].resultingQuantity", is(12)))
+            .andExpect(jsonPath("$[1].delta", is(5)))
+            .andExpect(jsonPath("$[1].resultingQuantity", is(15)));
+  }
+
+  @Test
+  void getStockHistoryForUnknownProductReturns404() throws Exception {
+    mockMvc
+            .perform(get("/api/products/{id}/stock-history", 999999))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.error", is("Not Found")));
   }
 
   @Test
