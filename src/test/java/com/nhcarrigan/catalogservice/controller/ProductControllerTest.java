@@ -552,7 +552,7 @@ class ProductControllerTest {
                 .andExpect(jsonPath("$.warning").doesNotExist());
         
         ProductRequest request2 = validRequest("CTRL-SKU-" + System.nanoTime());
-        request2.setName(dupeName);
+        request2.setName(dupeName.toUpperCase());
 
         mockMvc.perform(post("/api/products")
                 .contentType(MediaType.APPLICATION_JSON)
