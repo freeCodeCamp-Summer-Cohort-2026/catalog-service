@@ -89,19 +89,19 @@ class ProductServiceTest {
     assertThat(updated.getStockQuantity()).isEqualTo(15);
   }
 
-    @Test
-    void adjustStockCreatesExactlyOneLog() {
-        productService.adjustStock(testProduct.getId(), 5);
+  @Test
+  void adjustStockCreatesExactlyOneLog() {
+    productService.adjustStock(testProduct.getId(), 5);
 
-        List<StockAdjustmentLog> logs =
-                stockAdjustmentLogRepository.findByProductIdOrderByTimestampDesc(testProduct.getId());
+    List<StockAdjustmentLog> logs =
+            stockAdjustmentLogRepository.findByProductIdOrderByTimestampDesc(testProduct.getId());
 
-        assertThat(logs).hasSize(1);
-        assertThat(logs.get(0).getProductId()).isEqualTo(testProduct.getId());
-        assertThat(logs.get(0).getDelta()).isEqualTo(5);
-        assertThat(logs.get(0).getResultingQuantity()).isEqualTo(15);
-        assertThat(logs.get(0).getTimestamp()).isNotNull();
-    }
+    assertThat(logs).hasSize(1);
+    assertThat(logs.get(0).getProductId()).isEqualTo(testProduct.getId());
+    assertThat(logs.get(0).getDelta()).isEqualTo(5);
+    assertThat(logs.get(0).getResultingQuantity()).isEqualTo(15);
+    assertThat(logs.get(0).getTimestamp()).isNotNull();
+  }
 
   @Test
   void adjustStockDecrementsQuantity() {
@@ -119,16 +119,16 @@ class ProductServiceTest {
     assertThat(reloaded.getStockQuantity()).isEqualTo(10);
   }
 
-    @Test
-    void rejectedAdjustmentCreatesNoLog() {
-        assertThatThrownBy(() -> productService.adjustStock(testProduct.getId(), -11))
-                .isInstanceOf(InsufficientStockException.class);
+  @Test
+  void rejectedAdjustmentCreatesNoLog() {
+    assertThatThrownBy(() -> productService.adjustStock(testProduct.getId(), -11))
+            .isInstanceOf(InsufficientStockException.class);
 
-        List<StockAdjustmentLog> logs =
-                stockAdjustmentLogRepository.findByProductIdOrderByTimestampDesc(testProduct.getId());
+    List<StockAdjustmentLog> logs =
+            stockAdjustmentLogRepository.findByProductIdOrderByTimestampDesc(testProduct.getId());
 
-        assertThat(logs).isEmpty();
-    }
+    assertThat(logs).isEmpty();
+  }
 
   @Test
   void adjustStockAllowsExactlyZero() {
@@ -158,31 +158,31 @@ class ProductServiceTest {
         .isEqualTo(16);
   }
 
-    @Test
-    void bulkAdjustStockCreatesOneLogPerAdjustment() {
-        Product secondProduct = createTestProduct("TEST-SKU-" + System.nanoTime(), 20);
+  @Test
+  void bulkAdjustStockCreatesOneLogPerAdjustment() {
+    Product secondProduct = createTestProduct("TEST-SKU-" + System.nanoTime(), 20);
 
-        List<BulkStockAdjustmentRequest> adjustments =
-                List.of(
-                        new BulkStockAdjustmentRequest(testProduct.getId(), 5),
-                        new BulkStockAdjustmentRequest(secondProduct.getId(), -4));
+    List<BulkStockAdjustmentRequest> adjustments =
+            List.of(
+                    new BulkStockAdjustmentRequest(testProduct.getId(), 5),
+                    new BulkStockAdjustmentRequest(secondProduct.getId(), -4));
 
-        productService.bulkAdjustStock(adjustments);
+    productService.bulkAdjustStock(adjustments);
 
-        List<StockAdjustmentLog> firstProductLogs =
-                stockAdjustmentLogRepository.findByProductIdOrderByTimestampDesc(testProduct.getId());
+    List<StockAdjustmentLog> firstProductLogs =
+            stockAdjustmentLogRepository.findByProductIdOrderByTimestampDesc(testProduct.getId());
 
-        List<StockAdjustmentLog> secondProductLogs =
-                stockAdjustmentLogRepository.findByProductIdOrderByTimestampDesc(secondProduct.getId());
+    List<StockAdjustmentLog> secondProductLogs =
+            stockAdjustmentLogRepository.findByProductIdOrderByTimestampDesc(secondProduct.getId());
 
-        assertThat(firstProductLogs).hasSize(1);
-        assertThat(firstProductLogs.get(0).getDelta()).isEqualTo(5);
-        assertThat(firstProductLogs.get(0).getResultingQuantity()).isEqualTo(15);
+    assertThat(firstProductLogs).hasSize(1);
+    assertThat(firstProductLogs.get(0).getDelta()).isEqualTo(5);
+    assertThat(firstProductLogs.get(0).getResultingQuantity()).isEqualTo(15);
 
-        assertThat(secondProductLogs).hasSize(1);
-        assertThat(secondProductLogs.get(0).getDelta()).isEqualTo(-4);
-        assertThat(secondProductLogs.get(0).getResultingQuantity()).isEqualTo(16);
-    }
+    assertThat(secondProductLogs).hasSize(1);
+    assertThat(secondProductLogs.get(0).getDelta()).isEqualTo(-4);
+    assertThat(secondProductLogs.get(0).getResultingQuantity()).isEqualTo(16);
+  }
 
   @Test
   void bulkAdjustStockAllowsExactlyZero() {
@@ -247,24 +247,24 @@ class ProductServiceTest {
     assertThat(updated).hasSize(1).first().extracting(Product::getStockQuantity).isEqualTo(12);
   }
 
-    @Test
-    void bulkAdjustStockCreatesLogForEachRepeatedAdjustment() {
-        List<BulkStockAdjustmentRequest> adjustments =
-                List.of(
-                        new BulkStockAdjustmentRequest(testProduct.getId(), 5),
-                        new BulkStockAdjustmentRequest(testProduct.getId(), -3));
+  @Test
+  void bulkAdjustStockCreatesLogForEachRepeatedAdjustment() {
+    List<BulkStockAdjustmentRequest> adjustments =
+            List.of(
+                    new BulkStockAdjustmentRequest(testProduct.getId(), 5),
+                    new BulkStockAdjustmentRequest(testProduct.getId(), -3));
 
-        productService.bulkAdjustStock(adjustments);
+    productService.bulkAdjustStock(adjustments);
 
-        List<StockAdjustmentLog> logs =
-                stockAdjustmentLogRepository.findByProductIdOrderByTimestampDesc(testProduct.getId());
+    List<StockAdjustmentLog> logs =
+            stockAdjustmentLogRepository.findByProductIdOrderByTimestampDesc(testProduct.getId());
 
-        assertThat(logs).hasSize(2);
+    assertThat(logs).hasSize(2);
 
-        assertThat(logs.get(0).getDelta()).isEqualTo(-3);
-        assertThat(logs.get(0).getResultingQuantity()).isEqualTo(12);
+    assertThat(logs.get(0).getDelta()).isEqualTo(-3);
+    assertThat(logs.get(0).getResultingQuantity()).isEqualTo(12);
 
-        assertThat(logs.get(1).getDelta()).isEqualTo(5);
-        assertThat(logs.get(1).getResultingQuantity()).isEqualTo(15);
-    }
+    assertThat(logs.get(1).getDelta()).isEqualTo(5);
+    assertThat(logs.get(1).getResultingQuantity()).isEqualTo(15);
+  }
 }

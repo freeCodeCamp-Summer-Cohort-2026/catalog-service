@@ -297,8 +297,7 @@ class ProductControllerTest {
     request.setStockQuantity(10);
 
     String body =
-            mockMvc
-                    .perform(
+            mockMvc.perform(
                             post("/api/products")
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .content(objectMapper.writeValueAsString(request)))
@@ -312,8 +311,7 @@ class ProductControllerTest {
     StockAdjustmentRequest adjustment = new StockAdjustmentRequest();
     adjustment.setDelta(5);
 
-    mockMvc
-            .perform(
+    mockMvc.perform(
                     patch("/api/products/{id}/stock", id)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(adjustment)))
