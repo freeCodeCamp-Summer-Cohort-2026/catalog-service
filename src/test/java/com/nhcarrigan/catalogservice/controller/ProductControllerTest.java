@@ -603,4 +603,25 @@ class ProductControllerTest {
                 .content(objectMapper.writeValueAsString(request2)))
                 .andExpect(jsonPath("$.warning").exists());
     }
+
+    @Test
+    void creationWithDupeNameSubstringDoesNotProduceWarning() throws Exception {
+        String dupeName = "Test Duplicate Product Name";
+        
+        ProductRequest request1 = validRequest("CTRL-SKU-" + System.nanoTime());
+        request1.setName(dupeName);
+
+        mockMvc.perform(post("/api/products")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request1)))
+                .andExpect(jsonPath("$.warning").doesNotExist());
+        
+        ProductRequest request2 = validRequest("CTRL-SKU-" + System.nanoTime());
+        request2.setName(dupeName.substring(0, 5));
+
+        mockMvc.perform(post("/api/products")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request2)))
+                .andExpect(jsonPath("$.warning").doesNotExist());
+    }
 }
