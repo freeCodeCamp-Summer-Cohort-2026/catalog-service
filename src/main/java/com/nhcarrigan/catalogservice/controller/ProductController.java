@@ -126,7 +126,7 @@ public class ProductController {
      */
     @PostMapping
     public ResponseEntity<ProductCreationResponse> create(@Valid @RequestBody ProductRequest request) {
-        boolean isDuplicateName = !productService.searchByName(request.getName()).isEmpty();
+        boolean isDuplicateName = !productService.searchByExactName(request.getName()).isEmpty();
 
         Product created = productService.create(request);
 
