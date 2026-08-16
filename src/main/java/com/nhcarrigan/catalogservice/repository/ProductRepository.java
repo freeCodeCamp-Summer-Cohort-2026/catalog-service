@@ -1,6 +1,7 @@
 package com.nhcarrigan.catalogservice.repository;
 
 import com.nhcarrigan.catalogservice.entity.Product;
+import com.nhcarrigan.catalogservice.dto.CatalogCount;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.domain.Page;
@@ -22,6 +23,9 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     @Query("SELECT DISTINCT p.category FROM Product p")
     List<String> listCategories();
+
+    @Query("SELECT new com.nhcarrigan.catalogservice.dto.CatalogCount(p.category, COUNT(p)) FROM Product p GROUP BY p.category")
+    List<CatalogCount> listCatalogCounts();
 
     //Price Range Filter
     Page<Product> findByPriceGreaterThanEqual(BigDecimal minPrice, Pageable pageable); //only a floor
