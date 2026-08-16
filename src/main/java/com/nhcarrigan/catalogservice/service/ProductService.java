@@ -15,6 +15,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -46,6 +48,7 @@ public class ProductService {
    * @return a page containing the requested products and pagination metadata
    */
   @Transactional(readOnly = true)
+  @Cacheable(cacheNames = "products")
   public Page<Product> findAll(Pageable pageable) {
     return productRepository.findAll(pageable);
   }
@@ -59,6 +62,7 @@ public class ProductService {
    *     with the given id
    */
   @Transactional(readOnly = true)
+  @Cacheable(cacheNames = "product", key = "#id")
   public Product findById(Long id) {
     return productRepository.findById(id).orElseThrow(() -> new ProductNotFoundException(id));
   }
@@ -121,6 +125,9 @@ public class ProductService {
    *     same SKU already exists
    */
   @Transactional
+  @CacheEvict(
+      cacheNames = {"products", "product"},
+      allEntries = true)
   public Product create(ProductRequest request) {
     if (productRepository.existsBySku(request.getSku())) {
       throw new DuplicateSkuException(request.getSku());
@@ -148,6 +155,9 @@ public class ProductService {
    *     with a different existing product
    */
   @Transactional
+  @CacheEvict(
+      cacheNames = {"products", "product"},
+      allEntries = true)
   public Product update(Long id, ProductRequest request) {
     Product existing = findById(id);
 
@@ -173,6 +183,9 @@ public class ProductService {
    *     with the given id
    */
   @Transactional
+  @CacheEvict(
+      cacheNames = {"products", "product"},
+      allEntries = true)
   public void delete(Long id) {
     Product existing = findById(id);
     productRepository.delete(existing);
@@ -184,6 +197,9 @@ public class ProductService {
    * zero.
    */
   @Transactional
+  @CacheEvict(
+      cacheNames = {"products", "product"},
+      allEntries = true)
   public Product adjustStock(Long id, int delta) {
     Product product = findById(id);
     int newQuantity = product.getStockQuantity() + delta;
@@ -215,6 +231,9 @@ public class ProductService {
    *     would result in negative stock
    */
   @Transactional
+  @CacheEvict(
+      cacheNames = {"products", "product"},
+      allEntries = true)
   public List<Product> bulkAdjustStock(List<BulkStockAdjustmentRequest> adjustments) {
 
     Map<Long, Product> productsById = new LinkedHashMap<>();
@@ -264,6 +283,7 @@ public class ProductService {
    *     range is reversed
    */
   @Transactional(readOnly = true)
+  @Cacheable(cacheNames = "products")
   public Page<Product> filterByPrice(BigDecimal minPrice, BigDecimal maxPrice, Pageable pageable) {
     if (minPrice != null && maxPrice != null) {
       // both supplied
