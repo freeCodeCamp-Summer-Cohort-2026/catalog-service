@@ -6,6 +6,7 @@ import com.nhcarrigan.catalogservice.dto.ProductCreationResponse;
 import com.nhcarrigan.catalogservice.dto.ProductPageResponse;
 import com.nhcarrigan.catalogservice.dto.ProductRequest;
 import com.nhcarrigan.catalogservice.dto.StockAdjustmentRequest;
+import com.nhcarrigan.catalogservice.dto.CatalogCount;
 import com.nhcarrigan.catalogservice.entity.Product;
 import com.nhcarrigan.catalogservice.entity.StockAdjustmentLog;
 import com.nhcarrigan.catalogservice.exception.InvalidSearchCriteriaException;
@@ -139,6 +140,28 @@ public class ProductController {
   public List<StockAdjustmentLog> getStockHistory(@PathVariable Long id) {
     return productService.getStockHistory(id);
   }
+    /**
+     * Returns the amount of products per category
+     *
+     * @return the amount of product per category ,or an empty list if the catalog has no products.
+     */
+    @GetMapping("/category-counts")
+    public List<CatalogCount> getCategoryCounts() {
+        return productService.listCatalogCounts();
+    }
+
+    /**
+     * Retrieves a single product by its id.
+     *
+     * @param id the product id
+     * @return the matching product
+     * @throws com.nhcarrigan.catalogservice.exception.ProductNotFoundException
+     *         if no product exists with the given id
+     */
+    @GetMapping("/{id}")
+    public Product getById(@PathVariable Long id) {
+        return productService.findById(id);
+    }
 
     /**
      * Creates a new product.
