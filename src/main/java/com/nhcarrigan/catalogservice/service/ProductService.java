@@ -3,6 +3,7 @@ package com.nhcarrigan.catalogservice.service;
 import com.nhcarrigan.catalogservice.dto.BulkStockAdjustmentRequest;
 import com.nhcarrigan.catalogservice.dto.InventoryValueResponse;
 import com.nhcarrigan.catalogservice.dto.ProductRequest;
+import com.nhcarrigan.catalogservice.dto.CatalogCount;
 import com.nhcarrigan.catalogservice.entity.Product;
 import com.nhcarrigan.catalogservice.entity.StockAdjustmentLog;
 import com.nhcarrigan.catalogservice.exception.DuplicateSkuException;
@@ -298,6 +299,38 @@ public class ProductService {
                     row -> (BigDecimal) row[1],
                     BigDecimal::add,
                     LinkedHashMap::new));
+    /**
+     * Returns product and amount of product per category
+     *
+     * @return the product amount and category, or an empty list if the catalog has no products.
+     */
+    @Transactional(readOnly = true)
+    public List<CatalogCount> listCatalogCounts() {
+        return productRepository.listCatalogCounts();
+    }
+
+    /**
+     * Creates and persists a new product.
+     *
+     * @param request the fields for the new product
+     * @return the persisted product, including its generated id
+     * @throws com.nhcarrigan.catalogservice.exception.DuplicateSkuException
+     *         if a product with the same SKU already exists
+     */
+    @Transactional
+    public Product create(ProductRequest request) {
+        if (productRepository.existsBySku(request.getSku())) {
+            throw new DuplicateSkuException(request.getSku());
+        }
+        Product product = new Product(
+                request.getName(),
+                request.getSku(),
+                request.getCategory(),
+                request.getPrice(),
+                request.getStockQuantity(),
+                request.getDescription());
+        return productRepository.save(product);
+    }
 
     return new InventoryValueResponse(totalValue, byCategory);
   }
