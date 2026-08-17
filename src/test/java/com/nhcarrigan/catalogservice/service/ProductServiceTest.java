@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.nhcarrigan.catalogservice.dto.BulkStockAdjustmentRequest;
 import com.nhcarrigan.catalogservice.dto.ProductRequest;
+import com.nhcarrigan.catalogservice.dto.CatalogCount;
 import com.nhcarrigan.catalogservice.entity.Product;
 import com.nhcarrigan.catalogservice.entity.StockAdjustmentLog;
 import com.nhcarrigan.catalogservice.exception.DuplicateSkuException;
@@ -45,6 +46,26 @@ class ProductServiceTest {
     request.setStockQuantity(stock);
     return productService.create(request);
   }
+    private Product createTestProduct(String sku, String category, int stock) {
+        ProductRequest request = new ProductRequest();
+        request.setName("Test Widget");
+        request.setSku(sku);
+        request.setCategory(category);
+        request.setPrice(new BigDecimal("9.99"));
+        request.setStockQuantity(stock);
+        return productService.create(request);
+    }
+
+    @BeforeEach
+    void setUp() {
+        ProductRequest request = new ProductRequest();
+        request.setName("Test Widget");
+        request.setSku("TEST-SKU-" + System.nanoTime());
+        request.setCategory("Test Category");
+        request.setPrice(new BigDecimal("9.99"));
+        request.setStockQuantity(10);
+        testProduct = productService.create(request);
+    }
 
   @BeforeEach
   void setUp() {
@@ -267,4 +288,24 @@ class ProductServiceTest {
     assertThat(logs.get(1).getDelta()).isEqualTo(5);
     assertThat(logs.get(1).getResultingQuantity()).isEqualTo(15);
   }
+        assertThat(updated)
+                .hasSize(1)
+                .first()
+                .extracting(Product::getStockQuantity)
+                .isEqualTo(12);
+    }
+
+    @Test
+    void getCategoryCountsReturnsCategoryCounts() {
+        createTestProduct("ELECTRONIC-1", "Electronics", 20);
+        createTestProduct("ELECTRONIC-2", "Electronics", 50);
+
+        List<CatalogCount> counts = productService.getCategoryCounts();
+
+        assertThat(counts)
+                .anySatisfy(count -> {
+                        assertThat(count.categoryName()).isEqualTo("Electronics");
+                        assertThat(count.productCount()).isEqualTo(2);
+                });
+    }
 }
