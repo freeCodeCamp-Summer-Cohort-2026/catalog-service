@@ -146,6 +146,13 @@ class ProductControllerTest {
     }
 
     @Test
+    void getCategoryCountsReturnsEmptyListWhenNoProductsExist() throws Exception {
+        mockMvc.perform(get("/api/products/category-counts"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$", empty()));
+    }
+
+    @Test
     void searchByCategoryReturnsMatchingProducts() throws Exception {
         mockMvc.perform(get("/api/products/search").param("category", "Electronics"))
                 .andExpect(status().isOk())
