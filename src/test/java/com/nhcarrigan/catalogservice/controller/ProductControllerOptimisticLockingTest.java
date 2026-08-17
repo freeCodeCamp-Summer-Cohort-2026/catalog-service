@@ -25,31 +25,30 @@ import org.springframework.test.web.servlet.MockMvc;
 @Import(GlobalExceptionHandler.class)
 class ProductControllerOptimisticLockingTest {
 
-    @Autowired private MockMvc mockMvc;
+  @Autowired private MockMvc mockMvc;
 
-    @Autowired private ObjectMapper objectMapper;
+  @Autowired private ObjectMapper objectMapper;
 
-    @MockBean private ProductService productService;
+  @MockBean private ProductService productService;
 
-    @Test
-    void optimisticLockingFailureReturns409Conflict() throws Exception {
-        StockAdjustmentRequest request = new StockAdjustmentRequest();
-        request.setDelta(5);
+  @Test
+  void optimisticLockingFailureReturns409Conflict() throws Exception {
+    StockAdjustmentRequest request = new StockAdjustmentRequest();
+    request.setDelta(5);
 
-        when(productService.adjustStock(anyLong(), anyInt()))
-                .thenThrow(new OptimisticLockingFailureException("Version conflict"));
+    when(productService.adjustStock(anyLong(), anyInt()))
+        .thenThrow(new OptimisticLockingFailureException("Version conflict"));
 
-        mockMvc
-                .perform(
-                        patch("/api/products/{id}/stock", 1L)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.status", is(409)))
-                .andExpect(jsonPath("$.error", is("Conflict")))
-                .andExpect(
-                        jsonPath(
-                                "$.message",
-                                is("The product was modified by another request. Please retry.")));
-    }
+    mockMvc
+        .perform(
+            patch("/api/products/{id}/stock", 1L)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.status", is(409)))
+        .andExpect(jsonPath("$.error", is("Conflict")))
+        .andExpect(
+            jsonPath(
+                "$.message", is("The product was modified by another request. Please retry.")));
+  }
 }

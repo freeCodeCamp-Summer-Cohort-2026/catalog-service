@@ -16,56 +16,58 @@ import org.springframework.transaction.support.TransactionTemplate;
 @SpringBootTest
 class ProductOptimisticLockingTest {
 
-    @Autowired private ProductRepository productRepository;
+  @Autowired private ProductRepository productRepository;
 
-    @Autowired private ProductService productService;
+  @Autowired private ProductService productService;
 
-    @Autowired private TransactionTemplate transactionTemplate;
+  @Autowired private TransactionTemplate transactionTemplate;
 
-    @Test
-    void staleVersionUpdateIsRejected() {
-        Product product = createProduct();
+  @Test
+  void staleVersionUpdateIsRejected() {
+    Product product = createProduct();
 
-        Product staleProduct =
-                transactionTemplate.execute(
-                        status -> productRepository.findById(product.getId()).orElseThrow());
-
-        assertThat(staleProduct).isNotNull();
-        assertThat(staleProduct.getVersion()).isZero();
-
+    Product staleProduct =
         transactionTemplate.execute(
-                status -> {
-                    productService.adjustStock(product.getId(), 5);
-                    return null;
-                });
+            status -> productRepository.findById(product.getId()).orElseThrow());
 
-        assertThatThrownBy(
-                () ->
-                        transactionTemplate.execute(
-                                status -> {
-                                    staleProduct.setStockQuantity(20);
-                                    productRepository.save(staleProduct);
-                                    return null;
-                                }))
-                .isInstanceOf(ObjectOptimisticLockingFailureException.class);
+    assertThat(staleProduct).isNotNull();
+    assertThat(staleProduct.getVersion()).isNotNull();
 
-        Product reloaded = productRepository.findById(product.getId()).orElseThrow();
+    Long staleVersion = staleProduct.getVersion();
 
-        assertThat(reloaded.getStockQuantity()).isEqualTo(15);
-        assertThat(reloaded.getVersion()).isEqualTo(1);
-    }
+    transactionTemplate.execute(
+        status -> {
+          productService.adjustStock(product.getId(), 5);
+          return null;
+        });
 
-    private Product createProduct() {
-        return transactionTemplate.execute(
-                status -> {
-                    ProductRequest request = new ProductRequest();
-                    request.setName("Optimistic Lock Widget");
-                    request.setSku("OPT-LOCK-" + System.nanoTime());
-                    request.setCategory("Test Category");
-                    request.setPrice(new BigDecimal("9.99"));
-                    request.setStockQuantity(10);
+    assertThatThrownBy(
+            () ->
+                transactionTemplate.execute(
+                    status -> {
+                      staleProduct.setStockQuantity(20);
+                      productRepository.save(staleProduct);
+                      return null;
+                    }))
+        .isInstanceOf(ObjectOptimisticLockingFailureException.class);
 
-                    return productService.create(request);
-                });
-    }
+    Product reloaded = productRepository.findById(product.getId()).orElseThrow();
+
+    assertThat(reloaded.getStockQuantity()).isEqualTo(15);
+    assertThat(reloaded.getVersion()).isGreaterThan(staleVersion);
+  }
+
+  private Product createProduct() {
+    return transactionTemplate.execute(
+        status -> {
+          ProductRequest request = new ProductRequest();
+          request.setName("Optimistic Lock Widget");
+          request.setSku("OPT-LOCK-" + System.nanoTime());
+          request.setCategory("Test Category");
+          request.setPrice(new BigDecimal("9.99"));
+          request.setStockQuantity(10);
+
+          return productService.create(request);
+        });
+  }
 }

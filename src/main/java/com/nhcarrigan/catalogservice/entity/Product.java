@@ -5,9 +5,9 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.Version;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import jakarta.persistence.Version;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -46,9 +46,7 @@ public class Product {
   @Column(nullable = false)
   private Integer stockQuantity;
 
-  @Version
-  @Column(nullable = false)
-  private Long version;
+  @Version private Long version;
 
   public Long getVersion() {
     return version;

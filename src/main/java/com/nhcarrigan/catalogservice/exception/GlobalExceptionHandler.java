@@ -62,18 +62,17 @@ public class GlobalExceptionHandler {
 
   @ExceptionHandler(OptimisticLockingFailureException.class)
   public ResponseEntity<ApiError> handleOptimisticLockingFailure(
-          OptimisticLockingFailureException ex) {
+      OptimisticLockingFailureException ex) {
 
     ApiError body =
-            new ApiError(
-                    HttpStatus.CONFLICT.value(),
-                    "Conflict",
-                    "The product was modified by another request. Please retry.",
-                    List.of());
+        new ApiError(
+            HttpStatus.CONFLICT.value(),
+            "Conflict",
+            "The product was modified by another request. Please retry.",
+            List.of());
 
     return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
   }
-
 
   @ExceptionHandler(InsufficientStockException.class)
   public ResponseEntity<ApiError> handleInsufficientStock(InsufficientStockException ex) {
