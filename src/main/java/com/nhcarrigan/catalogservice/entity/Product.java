@@ -5,6 +5,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Version;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import jakarta.validation.constraints.DecimalMin;
@@ -44,6 +45,14 @@ public class Product {
   @Min(value = 0, message = "Stock quantity cannot be negative")
   @Column(nullable = false)
   private Integer stockQuantity;
+
+  @Version
+  @Column(nullable = false)
+  private Long version;
+
+  public Long getVersion() {
+    return version;
+  }
 
   @Column(length = 500)
   @Size(max = 500, message = "Description must not exceed 500 characters")
