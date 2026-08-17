@@ -12,6 +12,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nhcarrigan.catalogservice.dto.ProductRequest;
 import com.nhcarrigan.catalogservice.dto.StockAdjustmentRequest;
+import com.nhcarrigan.catalogservice.dto.CatalogCount;
 import com.nhcarrigan.catalogservice.entity.Product;
 import com.nhcarrigan.catalogservice.repository.ProductRepository;
 import java.math.BigDecimal;
@@ -56,6 +57,18 @@ class ProductControllerTest {
             new BigDecimal("19.99"),
             stock,
             "Product created for bulk stock adjustment tests.");
+    private Product createTestProduct(String sku, int stock) {
+        Product product = new Product(
+                "Test Product",
+                sku,
+                "Electronics",
+                new BigDecimal("19.99"),
+                stock,
+                "Product created for bulk stock adjustment tests."
+        );
+        
+        return productRepository.save(product);
+    }
 
     return productRepository.save(product);
   }
@@ -81,6 +94,230 @@ class ProductControllerTest {
     mockMvc
         .perform(
             post("/api/products")
+    @Test
+    void createProductWithNegativePriceReturns400() throws Exception {
+        ProductRequest request = validRequest("CTRL-SKU-" + System.nanoTime());
+        request.setPrice(new BigDecimal("-5.00"));
+
+        mockMvc.perform(post("/api/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.details[0]", is("price: Price must be greater than 0.00")));
+    }
+
+    @Test
+    void createProductWithZeroPriceReturns400() throws Exception {
+        ProductRequest request = validRequest("CTRL-SKU-" + System.nanoTime());
+        request.setPrice(new BigDecimal("0.00"));
+
+        mockMvc.perform(post("/api/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.details[0]", is("price: Price must be greater than 0.00")));
+    }
+
+    @Test
+    void getUnknownProductReturns404() throws Exception {
+        mockMvc.perform(get("/api/products/999999"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void getCategoriesReturnsDistinctCategories() throws Exception{
+        mockMvc.perform(get("/api/products/categories"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", containsInAnyOrder("Electronics", "Office Supplies", "Furniture")));
+    }
+
+    @Test
+    void getCategoryCountsReturnsCategoryCounts() throws Exception{
+        createTestProduct("Electronic-1", 20);
+        createTestProduct("Electronic-2", 50);
+
+        mockMvc.perform(get("/api/products/category-counts"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", not(empty())))
+                .andExpect(jsonPath(
+                    "$[?(@.categoryName == 'Electronics')].productCount",
+                    is(2)
+                ));
+    }
+
+    @Test
+    void searchByCategoryReturnsMatchingProducts() throws Exception {
+        mockMvc.perform(get("/api/products/search").param("category", "Electronics"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", not(empty())))
+                .andExpect(jsonPath("$[*].category", everyItem(is("Electronics"))));
+    }
+
+    @Test
+    void searchByUnknownCategoryReturnsEmptyList() throws Exception {
+        mockMvc.perform(get("/api/products/search").param("category", "NonExistentCategory"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", empty()));
+    }
+
+    @Test
+    void searchByEmptyCategoryReturnsEmptyList() throws Exception {
+        mockMvc.perform(get("/api/products/search").param("category", ""))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", empty()));
+    }
+
+    @Test
+    void searchByNameReturnsMatchingProducts() throws Exception {
+        mockMvc.perform(get("/api/products/search").param("name", "Keyboard"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", not(empty())))
+                .andExpect(jsonPath("$[*].name", everyItem(containsStringIgnoringCase("Keyboard"))));
+    }
+
+    @Test
+    void searchByUnknownNameReturnsEmptyList() throws Exception {
+        mockMvc.perform(get("/api/products/search").param("name", "NoSuchProduct"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", empty()));
+    }
+
+    @Test
+    void searchWithoutParamsReturnsEmptyList() throws Exception {
+        mockMvc.perform(get("/api/products/search"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", empty()));
+    }
+
+    @Test
+    void searchWithBothNameAndCategoryReturns400() throws Exception {
+        mockMvc.perform(get("/api/products/search")
+                        .param("name", "Keyboard")
+                        .param("category", "Electronics"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error", is("Bad Request")))
+                .andExpect(jsonPath("$.message", is("Provide either a name or a category, not both")));
+    }
+
+    @Test
+    void searchWithNameAndBlankCategoryReturns400() throws Exception {
+        mockMvc.perform(get("/api/products/search")
+                        .param("name", "Keyboard")
+                        .param("category", ""))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error", is("Bad Request")));
+    }
+
+    @Test
+    void searchWithBlankNameAndCategoryReturns400() throws Exception {
+        mockMvc.perform(get("/api/products/search")
+                        .param("name", "")
+                        .param("category", "Electronics"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error", is("Bad Request")));
+    }
+
+    @Test
+    void getEmptyCategoriesReturnsEmpty() throws Exception{
+        productRepository.deleteAll();
+        mockMvc.perform(get("/api/products/categories"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", empty()));
+    }
+
+    @Test
+    void deleteProductRemovesIt() throws Exception {
+        ProductRequest request = validRequest("CTRL-SKU-" + System.nanoTime());
+        String body = mockMvc.perform(post("/api/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        Long id = objectMapper.readTree(body).get("id").asLong();
+
+        mockMvc.perform(delete("/api/products/{id}", id))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/products/{id}", id))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void adjustStockRejectsDropBelowZero() throws Exception {
+        ProductRequest request = validRequest("CTRL-SKU-" + System.nanoTime());
+        request.setStockQuantity(3);
+        String body = mockMvc.perform(post("/api/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        Long id = objectMapper.readTree(body).get("id").asLong();
+
+        StockAdjustmentRequest adjustment = new StockAdjustmentRequest();
+        adjustment.setDelta(-4);
+
+        mockMvc.perform(patch("/api/products/{id}/stock", id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(adjustment)))
+                .andExpect(status().isUnprocessableEntity());
+    }
+
+    @Test
+    void adjustStockAppliesPositiveDelta() throws Exception {
+        ProductRequest request = validRequest("CTRL-SKU-" + System.nanoTime());
+        request.setStockQuantity(3);
+        String body = mockMvc.perform(post("/api/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        Long id = objectMapper.readTree(body).get("id").asLong();
+
+        StockAdjustmentRequest adjustment = new StockAdjustmentRequest();
+        adjustment.setDelta(7);
+
+        mockMvc.perform(patch("/api/products/{id}/stock", id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(adjustment)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.stockQuantity", is(10)));
+    }
+
+    @Test
+    void getUnknownProductReturns404WithCorrectShape() throws Exception {
+        mockMvc.perform(get("/api/products/999999"))
+                .andExpect(status().isNotFound())
+                .andExpectAll(
+                        jsonPath("$.timestamp").exists(),
+                        jsonPath("$.status", is(404)),
+                        jsonPath("$.error", is("Not Found")),
+                        jsonPath("$.message").exists(),
+                        jsonPath("$.details").exists());
+    }
+
+    @Test
+    void createDescriptionReturns201AndBody() throws Exception {
+        ProductRequest request = validRequest("CTRL-SKU-" + System.nanoTime());
+        request.setDescription("This is a pilot Description for the product.");
+
+        mockMvc.perform(post("/api/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.description", is("This is a pilot Description for the product.")));
+    }
+
+    @Test
+    @ExtendWith(OutputCaptureExtension.class)
+    void logMethodPathStatusOnProductRoutes(CapturedOutput output) throws Exception {
+        String expectedLogGet = "[GET] /api/products: 200\n";
+        mockMvc.perform(get("/api/products"));
+        assert output.getOut().endsWith(expectedLogGet)
+                : "Requests against /api/products should produce logs (GET)";
+
+        String expectedLogPost = "[POST] /api/products: 201\n";
+        ProductRequest request = validRequest("CTRL-SKU-" + System.nanoTime());
+        mockMvc.perform(post("/api/products")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isCreated())
