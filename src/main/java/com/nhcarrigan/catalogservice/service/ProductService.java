@@ -299,6 +299,8 @@ public class ProductService {
                     row -> (BigDecimal) row[1],
                     BigDecimal::add,
                     LinkedHashMap::new));
+    }
+    
     /**
      * Returns product and amount of product per category
      *
