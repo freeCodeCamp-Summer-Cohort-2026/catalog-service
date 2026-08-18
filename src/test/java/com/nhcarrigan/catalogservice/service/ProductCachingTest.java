@@ -5,11 +5,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import com.nhcarrigan.catalogservice.dto.BulkStockAdjustmentRequest;
 import com.nhcarrigan.catalogservice.dto.ProductRequest;
 import com.nhcarrigan.catalogservice.entity.Product;
 import com.nhcarrigan.catalogservice.exception.ProductNotFoundException;
 import com.nhcarrigan.catalogservice.repository.ProductRepository;
 import java.math.BigDecimal;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -106,6 +108,16 @@ class ProductCachingTest {
     productService.findById(product.getId());
 
     productService.adjustStock(product.getId(), 5);
+
+    assertThat(productService.findById(product.getId()).getStockQuantity()).isEqualTo(15);
+    verify(productRepositorySpy, times(3)).findById(product.getId());
+  }
+
+  @Test
+  void bulkStockAdjustmentEvictsTheProductCache() {
+    productService.findById(product.getId());
+
+    productService.bulkAdjustStock(List.of(new BulkStockAdjustmentRequest(product.getId(), 5)));
 
     assertThat(productService.findById(product.getId()).getStockQuantity()).isEqualTo(15);
     verify(productRepositorySpy, times(3)).findById(product.getId());
