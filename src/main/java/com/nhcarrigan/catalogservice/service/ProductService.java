@@ -2,6 +2,7 @@ package com.nhcarrigan.catalogservice.service;
 
 import com.nhcarrigan.catalogservice.dto.BulkStockAdjustmentRequest;
 import com.nhcarrigan.catalogservice.dto.InventoryValueResponse;
+import com.nhcarrigan.catalogservice.dto.ProductPatchRequest;
 import com.nhcarrigan.catalogservice.dto.ProductRequest;
 import com.nhcarrigan.catalogservice.entity.Product;
 import com.nhcarrigan.catalogservice.entity.StockAdjustmentLog;
@@ -188,7 +189,48 @@ public class ProductService {
   }
 
   /**
+   * Update any field(s) of an existing product.
+   *
+   * @param id the id of the product to update
+   * @param request the new field values
+   * @return the updated, persisted product
+   * @throws com.nhcarrigan.catalogservice.exception.ProductNotFoundException if no product exists
+   *     with the given id
+   * @throws com.nhcarrigan.catalogservice.exception.DuplicateSkuException if the new SKU collides
+   *     with a different existing product
+   */
+  @Transactional
+  @CacheEvict(cacheNames = { "products", "product" }, allEntries = true)
+  public Product patch(Long id, ProductPatchRequest request) {
+    Product existing = findById(id);
+
+    if (request.getSku() != null && !existing.getSku().equalsIgnoreCase(request.getSku())
+        && productRepository.existsBySku(request.getSku())) {
+      throw new DuplicateSkuException(request.getSku());
+    }
+
+    if (request.getName() != null)
+      existing.setName(request.getName());
+    if (request.getSku() != null)
+      existing.setSku(request.getSku());
+    if (request.getCategory() != null)
+      existing.setCategory(request.getCategory());
+    if (request.getPrice() != null)
+      existing.setPrice(request.getPrice());
+    if (request.getStockQuantity() != null)
+      existing.setStockQuantity(request.getStockQuantity());
+    if (request.getDescription() != null)
+      existing.setDescription(request.getDescription());
+
+    return productRepository.save(existing);
+  }
+
+  /**
    * Deletes a product by its id.
+   *
+   * <p>Log rows still reference the deleted product's id, but remain meaningful on
+   * their own since each one already captures the product's name and SKU at the
+   * time it was written.
    *
    * @param id the id of the product to delete
    * @throws com.nhcarrigan.catalogservice.exception.ProductNotFoundException if no product exists
@@ -223,7 +265,7 @@ public class ProductService {
     product.setStockQuantity(newQuantity);
     Product savedProduct = productRepository.save(product);
 
-    stockAdjustmentLogRepository.save(new StockAdjustmentLog(id, delta, newQuantity));
+    stockAdjustmentLogRepository.save(new StockAdjustmentLog(id, delta, newQuantity, product.getName(), product.getSku()));
 
     return savedProduct;
   }
@@ -268,7 +310,7 @@ public class ProductService {
 
       projectedStock.put(productId, newQuantity);
 
-      logs.add(new StockAdjustmentLog(productId, adjustment.delta(), newQuantity));
+      logs.add(new StockAdjustmentLog(productId, adjustment.delta(), newQuantity, product.getName(), product.getSku()));
     }
 
     // Phase 2: apply changes only after the entire batch is valid.
