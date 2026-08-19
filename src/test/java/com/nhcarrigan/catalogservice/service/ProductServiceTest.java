@@ -94,7 +94,7 @@ class ProductServiceTest {
     productService.adjustStock(testProduct.getId(), 5);
 
     List<StockAdjustmentLog> logs =
-            stockAdjustmentLogRepository.findByProductIdOrderByTimestampDesc(testProduct.getId());
+            stockAdjustmentLogRepository.findByProductIdOrderByTimestampDescIdDesc(testProduct.getId());
 
     assertThat(logs).hasSize(1);
     assertThat(logs.get(0).getProductId()).isEqualTo(testProduct.getId());
@@ -125,7 +125,7 @@ class ProductServiceTest {
             .isInstanceOf(InsufficientStockException.class);
 
     List<StockAdjustmentLog> logs =
-            stockAdjustmentLogRepository.findByProductIdOrderByTimestampDesc(testProduct.getId());
+            stockAdjustmentLogRepository.findByProductIdOrderByTimestampDescIdDesc(testProduct.getId());
 
     assertThat(logs).isEmpty();
   }
@@ -170,10 +170,10 @@ class ProductServiceTest {
     productService.bulkAdjustStock(adjustments);
 
     List<StockAdjustmentLog> firstProductLogs =
-            stockAdjustmentLogRepository.findByProductIdOrderByTimestampDesc(testProduct.getId());
+            stockAdjustmentLogRepository.findByProductIdOrderByTimestampDescIdDesc(testProduct.getId());
 
     List<StockAdjustmentLog> secondProductLogs =
-            stockAdjustmentLogRepository.findByProductIdOrderByTimestampDesc(secondProduct.getId());
+            stockAdjustmentLogRepository.findByProductIdOrderByTimestampDescIdDesc(secondProduct.getId());
 
     assertThat(firstProductLogs).hasSize(1);
     assertThat(firstProductLogs.get(0).getDelta()).isEqualTo(5);
@@ -257,7 +257,7 @@ class ProductServiceTest {
     productService.bulkAdjustStock(adjustments);
 
     List<StockAdjustmentLog> logs =
-            stockAdjustmentLogRepository.findByProductIdOrderByTimestampDesc(testProduct.getId());
+            stockAdjustmentLogRepository.findByProductIdOrderByTimestampDescIdDesc(testProduct.getId());
 
     assertThat(logs).hasSize(2);
 
