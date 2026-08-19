@@ -137,6 +137,12 @@ class ProductServiceTest {
   }
 
   @Test
+  void adjustStock() {
+    StockAdjustmentLog older = new StockAdjustmentLog(testProduct.getId(), 5, 15, testProduct.getName(), testProduct.getSku());
+    StockAdjustmentLog newer = new StockAdjustmentLog(testProduct.getId(), -3, 12, testProduct.getName(), testProduct.getSku());
+  }
+
+  @Test
   void bulkAdjustStockAppliesAllAdjustments() {
     Product secondProduct = createTestProduct("TEST-SKU-" + System.nanoTime(), 20);
 
