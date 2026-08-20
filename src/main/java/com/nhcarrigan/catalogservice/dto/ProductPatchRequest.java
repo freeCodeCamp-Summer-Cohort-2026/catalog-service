@@ -2,31 +2,32 @@ package com.nhcarrigan.catalogservice.dto;
 
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 
-/** Payload for creating or fully updating a product. */
-public class ProductRequest {
+import org.springframework.lang.Nullable;
 
-  @NotBlank(message = "Name must not be blank")
+/** Payload for partially updating (PATCH) a product. */
+public class ProductPatchRequest {
+
+  @Nullable
   private String name;
 
-  @NotBlank(message = "SKU must not be blank")
+  @Nullable
   private String sku;
 
-  @NotBlank(message = "Category must not be blank")
+  @Nullable
   private String category;
 
-  @NotNull(message = "Price is required")
+  @Nullable
   @DecimalMin(value = "0.01", message = "Price must be greater than 0.00")
   private BigDecimal price;
 
-  @NotNull(message = "Stock quantity is required")
+  @Nullable
   @Min(value = 0, message = "Stock quantity cannot be negative")
   private Integer stockQuantity;
 
+  @Nullable
   @Size(max = 500, message = "Description must not exceed 500 characters")
   private String description;
 

@@ -7,117 +7,127 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import jakarta.persistence.Version;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-
 import java.math.BigDecimal;
 
-/**
- * A single catalog item. Products are uniquely identified by SKU.
- */
+/** A single catalog item. Products are uniquely identified by SKU. */
 @Entity
 @Table(name = "products", uniqueConstraints = @UniqueConstraint(columnNames = "sku"))
 public class Product {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    @NotBlank(message = "Name must not be blank")
-    @Column(nullable = false)
-    private String name;
+  @NotBlank(message = "Name must not be blank")
+  @Column(nullable = false)
+  private String name;
 
-    @NotBlank(message = "SKU must not be blank")
-    @Column(nullable = false, unique = true)
-    private String sku;
+  @NotBlank(message = "SKU must not be blank")
+  @Column(nullable = false, unique = true)
+  private String sku;
 
-    @NotBlank(message = "Category must not be blank")
-    @Column(nullable = false)
-    private String category;
+  @NotBlank(message = "Category must not be blank")
+  @Column(nullable = false)
+  private String category;
 
-    @NotNull(message = "Price is required")
-    @DecimalMin(value = "0.01", message = "Price must be greater than 0.00")
-    @Column(nullable = false, precision = 19, scale = 2)
-    private BigDecimal price;
+  @NotNull(message = "Price is required")
+  @DecimalMin(value = "0.01", message = "Price must be greater than 0.00")
+  @Column(nullable = false, precision = 19, scale = 2)
+  private BigDecimal price;
 
-    @NotNull(message = "Stock quantity is required")
-    @Min(value = 0, message = "Stock quantity cannot be negative")
-    @Column(nullable = false)
-    private Integer stockQuantity;
+  @NotNull(message = "Stock quantity is required")
+  @Min(value = 0, message = "Stock quantity cannot be negative")
+  @Column(nullable = false)
+  private Integer stockQuantity;
 
-    @Column(length = 500)
-    @Size(max = 500, message = "Description must not exceed 500 characters")
-    private String description;
+  @Version private Long version;
 
-    protected Product() {
-        // required by JPA
-    }
+  public Long getVersion() {
+    return version;
+  }
 
-    public Product(String name, String sku, String category, BigDecimal price, Integer stockQuantity, String description) {
-        this.name = name;
-        this.sku = sku;
-        this.category = category;
-        this.price = price;
-        this.stockQuantity = stockQuantity;
-        this.description = description; // allowed to be null, since its Optional
-    }
+  @Column(length = 500)
+  @Size(max = 500, message = "Description must not exceed 500 characters")
+  private String description;
 
-    public Long getId() {
-        return id;
-    }
+  protected Product() {
+    // required by JPA
+  }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+  public Product(
+      String name,
+      String sku,
+      String category,
+      BigDecimal price,
+      Integer stockQuantity,
+      String description) {
+    this.name = name;
+    this.sku = sku;
+    this.category = category;
+    this.price = price;
+    this.stockQuantity = stockQuantity;
+    this.description = description; // allowed to be null, since its Optional
+  }
 
-    public String getName() {
-        return name;
-    }
+  public Long getId() {
+    return id;
+  }
 
-    public void setName(String name) {
-        this.name = name;
-    }
+  public void setId(Long id) {
+    this.id = id;
+  }
 
-    public String getSku() {
-        return sku;
-    }
+  public String getName() {
+    return name;
+  }
 
-    public void setSku(String sku) {
-        this.sku = sku;
-    }
+  public void setName(String name) {
+    this.name = name;
+  }
 
-    public String getCategory() {
-        return category;
-    }
+  public String getSku() {
+    return sku;
+  }
 
-    public void setCategory(String category) {
-        this.category = category;
-    }
+  public void setSku(String sku) {
+    this.sku = sku;
+  }
 
-    public BigDecimal getPrice() {
-        return price;
-    }
+  public String getCategory() {
+    return category;
+  }
 
-    public void setPrice(BigDecimal price) {
-        this.price = price;
-    }
+  public void setCategory(String category) {
+    this.category = category;
+  }
 
-    public Integer getStockQuantity() {
-        return stockQuantity;
-    }
+  public BigDecimal getPrice() {
+    return price;
+  }
 
-    public void setStockQuantity(Integer stockQuantity) {
-        this.stockQuantity = stockQuantity;
-    }
+  public void setPrice(BigDecimal price) {
+    this.price = price;
+  }
 
-    public String getDescription() {
-        return description;
-    }
+  public Integer getStockQuantity() {
+    return stockQuantity;
+  }
 
-    public void setDescription(String description) {
-        this.description = description;
-    }
+  public void setStockQuantity(Integer stockQuantity) {
+    this.stockQuantity = stockQuantity;
+  }
+
+  public String getDescription() {
+    return description;
+  }
+
+  public void setDescription(String description) {
+    this.description = description;
+  }
 }
