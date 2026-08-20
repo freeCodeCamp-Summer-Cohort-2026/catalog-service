@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.stream.Collectors;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -32,6 +33,10 @@ import org.springframework.transaction.annotation.Transactional;
  * by id (raising {@link com.nhcarrigan.catalogservice.exception.ProductNotFoundException} when
  * missing), and applies stock adjustments under the invariant that stock can never go negative.
  * Delegates persistence to {@link ProductRepository}.
+ *
+ * <p>SKU uniqueness is case-insensitive: SKUs are normalized to uppercase before being persisted,
+ * so the existing case-sensitive database constraint is sufficient on its own,
+ * since no two differently-cased variants of the same SKU can ever both be persisted.
  */
 @Service
 public class ProductService {
@@ -144,13 +149,14 @@ public class ProductService {
       cacheNames = {"products", "product"},
       allEntries = true)
   public Product create(ProductRequest request) {
-    if (productRepository.existsBySku(request.getSku())) {
-      throw new DuplicateSkuException(request.getSku());
+    String normalizedSku = normalizeSku(request.getSku());
+    if (productRepository.existsBySku(normalizedSku)) {
+      throw new DuplicateSkuException(normalizedSku);
     }
     Product product =
         new Product(
             request.getName(),
-            request.getSku(),
+            normalizedSku,
             request.getCategory(),
             request.getPrice(),
             request.getStockQuantity(),
@@ -176,16 +182,17 @@ public class ProductService {
     List<Product> newProducts = new ArrayList<>();
 
     for (ProductRequest request : requests) {
-      if (productRepository.existsBySku(request.getSku())) {
-        throw new DuplicateSkuException(request.getSku());
+      String normalizedSku = normalizeSku(request.getSku());
+      if (productRepository.existsBySku(normalizedSku)) {
+        throw new DuplicateSkuException(normalizedSku);
       }
-      if (!newSku.add(request.getSku())) {
-        throw new DuplicateSkuException(request.getSku());
+      if (!newSku.add(normalizedSku)) {
+        throw new DuplicateSkuException(normalizedSku);
       }
       Product product =
           new Product(
               request.getName(),
-              request.getSku(),
+              normalizedSku,
               request.getCategory(),
               request.getPrice(),
               request.getStockQuantity(),
@@ -212,14 +219,14 @@ public class ProductService {
       allEntries = true)
   public Product update(Long id, ProductRequest request) {
     Product existing = findById(id);
-
+    String normalizedSku = normalizeSku(request.getSku());
     if (!existing.getSku().equalsIgnoreCase(request.getSku())
-        && productRepository.existsBySku(request.getSku())) {
-      throw new DuplicateSkuException(request.getSku());
+        && productRepository.existsBySku(normalizedSku)) {
+      throw new DuplicateSkuException(normalizedSku);
     }
 
     existing.setName(request.getName());
-    existing.setSku(request.getSku());
+    existing.setSku(normalizedSku);
     existing.setCategory(request.getCategory());
     existing.setPrice(request.getPrice());
     existing.setStockQuantity(request.getStockQuantity());
@@ -242,16 +249,16 @@ public class ProductService {
   @CacheEvict(cacheNames = { "products", "product" }, allEntries = true)
   public Product patch(Long id, ProductPatchRequest request) {
     Product existing = findById(id);
+    String normalizedSku = request.getSku() != null ? normalizeSku(request.getSku()) : null;
 
     if (request.getSku() != null && !existing.getSku().equalsIgnoreCase(request.getSku())
-        && productRepository.existsBySku(request.getSku())) {
-      throw new DuplicateSkuException(request.getSku());
+        && productRepository.existsBySku(normalizedSku)) {
+      throw new DuplicateSkuException(normalizedSku);
     }
-
     if (request.getName() != null)
       existing.setName(request.getName());
     if (request.getSku() != null)
-      existing.setSku(request.getSku());
+      existing.setSku(normalizedSku);
     if (request.getCategory() != null)
       existing.setCategory(request.getCategory());
     if (request.getPrice() != null)
@@ -410,5 +417,9 @@ public class ProductService {
                     LinkedHashMap::new));
 
     return new InventoryValueResponse(totalValue, byCategory);
+  }
+
+  private String normalizeSku(String sku){
+    return sku.toUpperCase(Locale.ROOT);
   }
 }
