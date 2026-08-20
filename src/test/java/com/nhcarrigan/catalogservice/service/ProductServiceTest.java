@@ -16,6 +16,8 @@ import com.nhcarrigan.catalogservice.repository.StockAdjustmentLogRepository;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.Locale;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -338,5 +340,59 @@ class ProductServiceTest {
     assertThat(logs.get(1).getResultingQuantity()).isEqualTo(15);
     assertThat(logs.get(1).getTimestamp()).isEqualTo(timestamp1);
 
+  }
+
+  @Test
+  void createRejectsDuplicateButCanonicallyDifferingSku() {
+    ProductRequest duplicate = new ProductRequest();
+    duplicate.setName("Another Widget");
+    duplicate.setSku(testProduct.getSku().toLowerCase());
+    duplicate.setCategory("Test Category");
+    duplicate.setPrice(new BigDecimal("5.00"));
+    duplicate.setStockQuantity(5);
+
+    assertThatThrownBy(() -> productService.create(duplicate))
+            .isInstanceOf(DuplicateSkuException.class);
+  }
+
+  @Test
+  void createRegistersUppercaseSku() {
+    ProductRequest request = new ProductRequest();
+    request.setName("Some Product");
+    request.setSku("test-sku-" + System.nanoTime());
+    request.setCategory("Test Category");
+    request.setPrice(new BigDecimal("5.00"));
+    request.setStockQuantity(5);
+
+    Product created = productService.create(request);
+    assertThat(created.getSku()).isEqualTo(request.getSku().toUpperCase(Locale.ROOT));
+  }
+
+  @Test
+  void updateOwnSkuToLowercaseIsNotCollision(){
+    ProductRequest request = new ProductRequest();
+    request.setName(testProduct.getName());
+    request.setSku(testProduct.getSku().toLowerCase(Locale.ROOT));
+    request.setCategory(testProduct.getCategory());
+    request.setPrice(testProduct.getPrice());
+    request.setStockQuantity(testProduct.getStockQuantity());
+
+    Product updated = productService.update(testProduct.getId(), request);
+    assertThat(updated.getSku()).isEqualTo(testProduct.getSku());
+  }
+
+  @Test
+  void updateSkuToExistingSkuCollides(){
+    Product secondProduct = createTestProduct("TEST-SKU-" + System.nanoTime(), 5);
+
+    ProductRequest request = new ProductRequest();
+    request.setName("Some Product");
+    request.setSku(secondProduct.getSku().toLowerCase(Locale.ROOT));
+    request.setCategory("Test Category");
+    request.setPrice(new BigDecimal("5.00"));
+    request.setStockQuantity(5);
+
+    assertThatThrownBy(() -> productService.update(testProduct.getId(), request))
+            .isInstanceOf(DuplicateSkuException.class);
   }
 }
