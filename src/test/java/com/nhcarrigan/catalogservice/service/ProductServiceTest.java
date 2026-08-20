@@ -2,7 +2,6 @@ package com.nhcarrigan.catalogservice.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.InstanceOfAssertFactories.INSTANT;
 
 import com.nhcarrigan.catalogservice.dto.BulkStockAdjustmentRequest;
 import com.nhcarrigan.catalogservice.dto.ProductRequest;
@@ -17,11 +16,11 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -125,7 +124,9 @@ class ProductServiceTest {
     productService.adjustStock(testProduct.getId(), 5);
 
     List<StockAdjustmentLog> logs =
-            stockAdjustmentLogRepository.findByProductIdOrderByTimestampDescIdDesc(testProduct.getId());
+        stockAdjustmentLogRepository
+            .findByProductIdOrderByTimestampDescIdDesc(testProduct.getId(), Pageable.unpaged())
+            .getContent();
 
     assertThat(logs).hasSize(1);
     assertThat(logs.get(0).getProductId()).isEqualTo(testProduct.getId());
@@ -141,7 +142,9 @@ class ProductServiceTest {
     productService.delete(testProduct.getId());
 
     List<StockAdjustmentLog> logs =
-            stockAdjustmentLogRepository.findByProductIdOrderByTimestampDescIdDesc(testProduct.getId());
+        stockAdjustmentLogRepository
+            .findByProductIdOrderByTimestampDescIdDesc(testProduct.getId(), Pageable.unpaged())
+            .getContent();
 
     assertThat(logs.get(0).getProductName()).isEqualTo(testProduct.getName());
     assertThat(logs.get(0).getProductSku()).isEqualTo(testProduct.getSku());
@@ -174,8 +177,9 @@ class ProductServiceTest {
         .isInstanceOf(InsufficientStockException.class);
 
     List<StockAdjustmentLog> logs =
-            stockAdjustmentLogRepository.findByProductIdOrderByTimestampDescIdDesc(testProduct.getId());
-
+        stockAdjustmentLogRepository
+            .findByProductIdOrderByTimestampDescIdDesc(testProduct.getId(), Pageable.unpaged())
+            .getContent();
 
     assertThat(logs).isEmpty();
   }
@@ -220,10 +224,14 @@ class ProductServiceTest {
     productService.bulkAdjustStock(adjustments);
 
     List<StockAdjustmentLog> firstProductLogs =
-            stockAdjustmentLogRepository.findByProductIdOrderByTimestampDescIdDesc(testProduct.getId());
+        stockAdjustmentLogRepository
+            .findByProductIdOrderByTimestampDescIdDesc(testProduct.getId(), Pageable.unpaged())
+            .getContent();
 
     List<StockAdjustmentLog> secondProductLogs =
-            stockAdjustmentLogRepository.findByProductIdOrderByTimestampDescIdDesc(secondProduct.getId());
+        stockAdjustmentLogRepository
+            .findByProductIdOrderByTimestampDescIdDesc(secondProduct.getId(), Pageable.unpaged())
+            .getContent();
 
     assertThat(firstProductLogs).hasSize(1);
     assertThat(firstProductLogs.get(0).getDelta()).isEqualTo(5);
@@ -307,8 +315,9 @@ class ProductServiceTest {
     productService.bulkAdjustStock(adjustments);
 
     List<StockAdjustmentLog> logs =
-            stockAdjustmentLogRepository.findByProductIdOrderByTimestampDescIdDesc(testProduct.getId());
-
+        stockAdjustmentLogRepository
+            .findByProductIdOrderByTimestampDescIdDesc(testProduct.getId(), Pageable.unpaged())
+            .getContent();
 
     assertThat(logs).hasSize(2);
 
@@ -321,8 +330,12 @@ class ProductServiceTest {
 
   @Test
   void getStockHistoryBreaksTiedTimestampsByIdDescending() {
-    StockAdjustmentLog older = new StockAdjustmentLog(testProduct.getId(), 5, 15, testProduct.getName(), testProduct.getSku());
-    StockAdjustmentLog newer = new StockAdjustmentLog(testProduct.getId(), -3, 12, testProduct.getName(), testProduct.getSku());
+    StockAdjustmentLog older =
+        new StockAdjustmentLog(
+            testProduct.getId(), 5, 15, testProduct.getName(), testProduct.getSku());
+    StockAdjustmentLog newer =
+        new StockAdjustmentLog(
+            testProduct.getId(), -3, 12, testProduct.getName(), testProduct.getSku());
     Instant timestamp1 = Instant.now();
 
     ReflectionTestUtils.setField(older, "timestamp", timestamp1);
@@ -331,15 +344,15 @@ class ProductServiceTest {
     stockAdjustmentLogRepository.save(older);
     stockAdjustmentLogRepository.save(newer);
 
-
     List<StockAdjustmentLog> logs =
-            stockAdjustmentLogRepository.findByProductIdOrderByTimestampDescIdDesc(testProduct.getId());
+        stockAdjustmentLogRepository
+            .findByProductIdOrderByTimestampDescIdDesc(testProduct.getId(), Pageable.unpaged())
+            .getContent();
 
     assertThat(logs.get(0).getResultingQuantity()).isEqualTo(12);
     assertThat(logs.get(0).getTimestamp()).isEqualTo(timestamp1);
     assertThat(logs.get(1).getResultingQuantity()).isEqualTo(15);
     assertThat(logs.get(1).getTimestamp()).isEqualTo(timestamp1);
-
   }
 
   @Test
@@ -352,7 +365,7 @@ class ProductServiceTest {
     duplicate.setStockQuantity(5);
 
     assertThatThrownBy(() -> productService.create(duplicate))
-            .isInstanceOf(DuplicateSkuException.class);
+        .isInstanceOf(DuplicateSkuException.class);
   }
 
   @Test
@@ -369,7 +382,7 @@ class ProductServiceTest {
   }
 
   @Test
-  void updateOwnSkuToLowercaseIsNotCollision(){
+  void updateOwnSkuToLowercaseIsNotCollision() {
     ProductRequest request = new ProductRequest();
     request.setName(testProduct.getName());
     request.setSku(testProduct.getSku().toLowerCase(Locale.ROOT));
@@ -382,7 +395,7 @@ class ProductServiceTest {
   }
 
   @Test
-  void updateSkuToExistingSkuCollides(){
+  void updateSkuToExistingSkuCollides() {
     Product secondProduct = createTestProduct("TEST-SKU-" + System.nanoTime(), 5);
 
     ProductRequest request = new ProductRequest();
@@ -393,6 +406,6 @@ class ProductServiceTest {
     request.setStockQuantity(5);
 
     assertThatThrownBy(() -> productService.update(testProduct.getId(), request))
-            .isInstanceOf(DuplicateSkuException.class);
+        .isInstanceOf(DuplicateSkuException.class);
   }
 }

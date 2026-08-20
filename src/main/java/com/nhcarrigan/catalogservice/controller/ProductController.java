@@ -8,8 +8,8 @@ import com.nhcarrigan.catalogservice.dto.ProductPageResponse;
 import com.nhcarrigan.catalogservice.dto.ProductPatchRequest;
 import com.nhcarrigan.catalogservice.dto.ProductRequest;
 import com.nhcarrigan.catalogservice.dto.StockAdjustmentRequest;
+import com.nhcarrigan.catalogservice.dto.StockHistoryPageResponse;
 import com.nhcarrigan.catalogservice.entity.Product;
-import com.nhcarrigan.catalogservice.entity.StockAdjustmentLog;
 import com.nhcarrigan.catalogservice.exception.InvalidSearchCriteriaException;
 import com.nhcarrigan.catalogservice.service.ProductImportService;
 import com.nhcarrigan.catalogservice.service.ProductService;
@@ -141,13 +141,15 @@ public class ProductController {
    * Returns the stock adjustment history for a product, newest first.
    *
    * @param id the id of the product whose stock history is being requested
+   * @param pageable the pagination information (page number, size, sort)
    * @return the product's stock adjustment history
    * @throws com.nhcarrigan.catalogservice.exception.ProductNotFoundException if no product exists
    *     with the given id
    */
   @GetMapping("/{id}/stock-history")
-  public List<StockAdjustmentLog> getStockHistory(@PathVariable Long id) {
-    return productService.getStockHistory(id);
+  public StockHistoryPageResponse getStockHistory(
+      @PathVariable Long id, @PageableDefault(size = 20) Pageable pageable) {
+    return StockHistoryPageResponse.from(productService.getStockHistory(id, pageable));
   }
 
   /**
