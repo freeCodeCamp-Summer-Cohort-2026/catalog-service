@@ -75,6 +75,15 @@ class ProductControllerTest {
   }
 
   @Test
+  void getBySkuReturnsProduct() throws Exception{
+    Product testProduct = createTestProduct("TEST-PRODUCT", 1);
+    mockMvc
+            .perform(get("/api/products/sku/{sku}", testProduct.getSku())) 
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.sku", is("TEST-PRODUCT")));
+            }
+
+  @Test
   void createProductReturns201AndBody() throws Exception {
     ProductRequest request = validRequest("CTRL-SKU-" + System.nanoTime());
 
