@@ -149,7 +149,7 @@ public class ProductController {
      * @throws com.nhcarrigan.catalogservice.exception.ProductNotFoundException
      *         if no product exists with the given sku
      */
-    @GetMapping("/{sku}")
+    @GetMapping("/sku/{sku}")
     public Product getBySku(@PathVariable String sku){
         return productService.findBySku(sku);
     }
