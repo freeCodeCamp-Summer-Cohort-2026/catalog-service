@@ -281,18 +281,6 @@ public class ProductService {
 
     return savedProduct;
   }
-    
-    /**
-     * Searches for products whose name contains the given substring,
-     * case-insensitive.
-     *
-     * @param name the substring to match against product names
-     * @return matching products, or an empty list if none match
-     */
-    @Transactional(readOnly = true)
-    public List<Product> searchByName(String name) {
-        return productRepository.findByNameContainingIgnoreCase(name);
-      } 
 
   /**
    * Applies multiple stock adjustments as one atomic operation.
