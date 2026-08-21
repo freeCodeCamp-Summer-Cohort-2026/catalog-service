@@ -70,6 +70,19 @@ public class ProductService {
     return productRepository.findById(id).orElseThrow(() -> new ProductNotFoundException(id));
   }
 
+   /**
+     * Retrieves a single product by its SKU.
+     *
+     * @param sku the product sku
+     * @return the matching product
+     * @throws com.nhcarrigan.catalogservice.exception.ProductNotFoundException
+     *         if no product exists with the given sku
+     */
+    @Transactional(readOnly = true)
+    public Product findBySku(String sku){
+        return productRepository.getBySku(sku).orElseThrow(() -> new ProductNotFoundException(sku));
+    }
+
   /**
    * Retrieves all stock adjustment log rows for a specified product.
    *
@@ -268,20 +281,6 @@ public class ProductService {
 
     return savedProduct;
   }
-
-    /**
-     * Retrieves a single product by its SKU.
-     *
-     * @param sku the product sku
-     * @return the matching product
-     * @throws com.nhcarrigan.catalogservice.exception.ProductNotFoundException
-     *         if no product exists with the given sku
-     */
-    @Transactional(readOnly = true)
-    public Product findBySku(String sku){
-        return productRepository.findBySku(sku)
-            .orElseThrow(() -> new ProductNotFoundException(sku));
-    }
     
     /**
      * Searches for products whose name contains the given substring,
