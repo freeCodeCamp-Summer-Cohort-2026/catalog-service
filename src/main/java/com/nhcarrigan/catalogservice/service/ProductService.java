@@ -12,6 +12,7 @@ import com.nhcarrigan.catalogservice.exception.InvalidPriceRangeException;
 import com.nhcarrigan.catalogservice.exception.ProductNotFoundException;
 import com.nhcarrigan.catalogservice.repository.ProductRepository;
 import com.nhcarrigan.catalogservice.repository.StockAdjustmentLogRepository;
+import com.nhcarrigan.catalogservice.event.StockDepletedEvent;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -27,6 +28,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.context.ApplicationEventPublisher;
 
 /**
  * Business logic for managing {@link Product} entities: enforces SKU uniqueness, looks products up
@@ -43,12 +45,15 @@ public class ProductService {
 
   private final ProductRepository productRepository;
   private final StockAdjustmentLogRepository stockAdjustmentLogRepository;
+  private final ApplicationEventPublisher eventPublisher;
 
   public ProductService(
       ProductRepository productRepository,
-      StockAdjustmentLogRepository stockAdjustmentLogRepository) {
+      StockAdjustmentLogRepository stockAdjustmentLogRepository,
+      ApplicationEventPublisher eventPublisher) {
     this.productRepository = productRepository;
     this.stockAdjustmentLogRepository = stockAdjustmentLogRepository;
+    this.eventPublisher = eventPublisher;
   }
 
   /**
@@ -306,6 +311,10 @@ public class ProductService {
 
     if (newQuantity < 0) {
       throw new InsufficientStockException(id, product.getStockQuantity(), delta);
+    }
+
+    if (product.getStockQuantity() > 0 && newQuantity == 0) {
+      eventPublisher.publishEvent(new StockDepletedEvent(id));
     }
 
     product.setStockQuantity(newQuantity);

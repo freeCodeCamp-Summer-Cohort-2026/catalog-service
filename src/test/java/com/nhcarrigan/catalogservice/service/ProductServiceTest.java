@@ -13,6 +13,7 @@ import com.nhcarrigan.catalogservice.exception.InsufficientStockException;
 import com.nhcarrigan.catalogservice.exception.ProductNotFoundException;
 import com.nhcarrigan.catalogservice.repository.ProductRepository;
 import com.nhcarrigan.catalogservice.repository.StockAdjustmentLogRepository;
+import com.nhcarrigan.catalogservice.event.StockDepletedEvent;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
@@ -24,6 +25,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.test.context.event.ApplicationEvents;
+import org.springframework.test.context.event.RecordApplicationEvents;
 
 /**
  * Integration-style tests for the stock-adjustment business logic, backed by the in-memory H2
@@ -31,6 +34,7 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @SpringBootTest
 @Transactional
+@RecordApplicationEvents
 class ProductServiceTest {
 
   @Autowired private ProductService productService;
@@ -394,5 +398,14 @@ class ProductServiceTest {
 
     assertThatThrownBy(() -> productService.update(testProduct.getId(), request))
             .isInstanceOf(DuplicateSkuException.class);
+  }
+
+  @Test
+  void adjustStockFiresEventWhenStockHitsZero(ApplicationEvents events) {
+    productService.adjustStock(testProduct.getId(), -10);
+    assertThat(events.stream(StockDepletedEvent.class).count()).isEqualTo(1);
+
+    productService.adjustStock(testProduct.getId(), 0);
+    assertThat(events.stream(StockDepletedEvent.class).count()).isEqualTo(1);
   }
 }
