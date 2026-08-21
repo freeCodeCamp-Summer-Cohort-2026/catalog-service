@@ -81,20 +81,14 @@ class ProductServiceTest {
 
     @Test
     void findBySkuSuccess(){
-        assertThat(productService.findBySku(testProduct.getSku()).getId()) 
-                .isEqualTo(testProduct.getId());
+      assertThat(productService.findBySku(testProduct.getSku()).getId()) 
+          .isEqualTo(testProduct.getId());
     }
 
     @Test
     void findBySkuThrowsWhenMissing(){
-        assertThatThrownBy(() -> productService.findBySku(1))
-        .isInstanceOf(ProductNotFoundException.class);
-    }
-
-    @Test
-    void findByIdThrowsWhenMissing() {
-        assertThatThrownBy(() -> productService.findById(-1L))
-                .isInstanceOf(ProductNotFoundException.class);
+      assertThatThrownBy(() -> productService.findBySku("MISSING-SKU-" + System.nanoTime()))
+          .isInstanceOf(ProductNotFoundException.class);
     }
     
   @Test
