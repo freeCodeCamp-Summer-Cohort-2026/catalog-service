@@ -371,7 +371,15 @@ public class ProductService {
     // Phase 2: apply changes only after the entire batch is valid.
     for (Map.Entry<Long, Product> entry : productsById.entrySet()) {
       Product product = entry.getValue();
-      product.setStockQuantity(projectedStock.get(entry.getKey()));
+      Long productId = entry.getKey();
+      int initialStock = product.getStockQuantity();
+      int finalStock = projectedStock.get(productId);
+
+      product.setStockQuantity(finalStock);
+
+      if (initialStock > 0 && finalStock == 0) {
+        eventPublisher.publishEvent(new StockDepletedEvent(productId));
+      }
     }
 
     stockAdjustmentLogRepository.saveAll(logs);

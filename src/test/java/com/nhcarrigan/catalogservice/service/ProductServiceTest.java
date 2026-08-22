@@ -408,4 +408,13 @@ class ProductServiceTest {
     productService.adjustStock(testProduct.getId(), 0);
     assertThat(events.stream(StockDepletedEvent.class).count()).isEqualTo(1);
   }
+
+  @Test
+  void bulkAdjustStockFiresEventWhenStockHitsZero(ApplicationEvents events) {
+    List<BulkStockAdjustmentRequest> adjustments = List.of(new BulkStockAdjustmentRequest(testProduct.getId(), -10));
+
+    productService.bulkAdjustStock(adjustments);
+
+    assertThat(events.stream(StockDepletedEvent.class).count()).isEqualTo(1);
+  }
 }
