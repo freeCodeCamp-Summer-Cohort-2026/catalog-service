@@ -25,8 +25,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 class ProductImportServiceTest {
 
-  private final Validator validator =
-      Validation.buildDefaultValidatorFactory().getValidator();
+  private final Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
 
   private ProductCsvParser csvParser;
   private ProductService productService;
@@ -45,8 +44,7 @@ class ProductImportServiceTest {
         new ProductCsvParser.ParsedProductRow(
             2, "Keyboard", "SKU-001", "Electronics", "49.99", "10", null);
 
-    ProductImportService.ProductImportValidationResult result =
-        service.validateRows(List.of(row));
+    ProductImportService.ProductImportValidationResult result = service.validateRows(List.of(row));
 
     assertThat(result.validProducts()).hasSize(1);
     assertThat(result.errors()).isEmpty();
@@ -65,8 +63,7 @@ class ProductImportServiceTest {
         new ProductCsvParser.ParsedProductRow(
             3, "Keyboard", "SKU-001", "Electronics", "-5.00", "10", null);
 
-    ProductImportService.ProductImportValidationResult result =
-        service.validateRows(List.of(row));
+    ProductImportService.ProductImportValidationResult result = service.validateRows(List.of(row));
 
     assertThat(result.validProducts()).isEmpty();
     assertThat(result.errors())
@@ -82,11 +79,9 @@ class ProductImportServiceTest {
   @Test
   void reportsMissingRequiredField() {
     ProductCsvParser.ParsedProductRow row =
-        new ProductCsvParser.ParsedProductRow(
-            4, "", "SKU-001", "Electronics", "49.99", "10", null);
+        new ProductCsvParser.ParsedProductRow(4, "", "SKU-001", "Electronics", "49.99", "10", null);
 
-    ProductImportService.ProductImportValidationResult result =
-        service.validateRows(List.of(row));
+    ProductImportService.ProductImportValidationResult result = service.validateRows(List.of(row));
 
     assertThat(result.validProducts()).isEmpty();
     assertThat(result.errors())
@@ -108,8 +103,7 @@ class ProductImportServiceTest {
             new ProductCsvParser.ParsedProductRow(
                 3, "Mouse", "SKU-001", "Electronics", "19.99", "20", null));
 
-    ProductImportService.ProductImportValidationResult result =
-        service.validateRows(rows);
+    ProductImportService.ProductImportValidationResult result = service.validateRows(rows);
 
     assertThat(result.validProducts()).hasSize(1);
     assertThat(result.errors())
@@ -131,8 +125,7 @@ class ProductImportServiceTest {
             new ProductCsvParser.ParsedProductRow(
                 3, "Mouse", "sku-001", "Electronics", "19.99", "20", null));
 
-    ProductImportService.ProductImportValidationResult result =
-        service.validateRows(rows);
+    ProductImportService.ProductImportValidationResult result = service.validateRows(rows);
 
     assertThat(result.validProducts()).hasSize(1);
     assertThat(result.errors())
@@ -153,8 +146,7 @@ class ProductImportServiceTest {
             new ProductCsvParser.ParsedProductRow(
                 3, "Mouse", "SKU-002", "Electronics", "19.99", "not-a-number", null));
 
-    ProductImportService.ProductImportValidationResult result =
-        service.validateRows(rows);
+    ProductImportService.ProductImportValidationResult result = service.validateRows(rows);
 
     assertThat(result.validProducts()).isEmpty();
     assertThat(result.errors()).hasSize(2);
@@ -169,18 +161,11 @@ class ProductImportServiceTest {
             2, "Keyboard", "SKU-001", "Electronics", "49.99", "10", null);
 
     Product savedProduct =
-        new Product(
-            "Keyboard",
-            "SKU-001",
-            "Electronics",
-            new BigDecimal("49.99"),
-            10,
-            null);
+        new Product("Keyboard", "SKU-001", "Electronics", new BigDecimal("49.99"), 10, null);
 
     when(productService.create(any(ProductRequest.class))).thenReturn(savedProduct);
 
-    ProductImportService.ProductImportResult result =
-        service.importProducts(List.of(row));
+    ProductImportService.ProductImportResult result = service.importProducts(List.of(row));
 
     assertThat(result.importedProducts()).containsExactly(savedProduct);
     assertThat(result.errors()).isEmpty();
@@ -195,8 +180,7 @@ class ProductImportServiceTest {
     when(productService.create(any(ProductRequest.class)))
         .thenThrow(new DuplicateSkuException("SKU-001"));
 
-    ProductImportService.ProductImportResult result =
-        service.importProducts(List.of(row));
+    ProductImportService.ProductImportResult result = service.importProducts(List.of(row));
 
     assertThat(result.importedProducts()).isEmpty();
     assertThat(result.errors())
@@ -219,20 +203,13 @@ class ProductImportServiceTest {
                 3, "Mouse", "SKU-002", "Electronics", "19.99", "20", null));
 
     Product secondProduct =
-        new Product(
-            "Mouse",
-            "SKU-002",
-            "Electronics",
-            new BigDecimal("19.99"),
-            20,
-            null);
+        new Product("Mouse", "SKU-002", "Electronics", new BigDecimal("19.99"), 20, null);
 
     when(productService.create(any(ProductRequest.class)))
         .thenThrow(new DuplicateSkuException("SKU-001"))
         .thenReturn(secondProduct);
 
-    ProductImportService.ProductImportResult result =
-        service.importProducts(rows);
+    ProductImportService.ProductImportResult result = service.importProducts(rows);
 
     assertThat(result.importedProducts()).containsExactly(secondProduct);
     assertThat(result.errors())
@@ -254,20 +231,11 @@ class ProductImportServiceTest {
 
     MultipartFile file =
         new MockMultipartFile(
-            "file",
-            "products.csv",
-            "text/csv",
-            csv.getBytes(StandardCharsets.UTF_8));
+            "file", "products.csv", "text/csv", csv.getBytes(StandardCharsets.UTF_8));
 
     ProductCsvParser.ParsedProductRow row =
         new ProductCsvParser.ParsedProductRow(
-            2,
-            "Keyboard",
-            "SKU-001",
-            "Electronics",
-            "49.99",
-            "10",
-            "Mechanical keyboard");
+            2, "Keyboard", "SKU-001", "Electronics", "49.99", "10", "Mechanical keyboard");
 
     when(csvParser.parse(file)).thenReturn(List.of(row));
 
@@ -279,8 +247,7 @@ class ProductImportServiceTest {
             new BigDecimal("49.99"),
             10,
             "Mechanical keyboard");
-    when(productService.create(any(ProductRequest.class)))
-        .thenReturn(savedProduct);
+    when(productService.create(any(ProductRequest.class))).thenReturn(savedProduct);
 
     ProductImportResponse result = service.importCsv(file);
 

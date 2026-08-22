@@ -517,11 +517,11 @@ class ProductControllerTest {
     mockMvc
         .perform(get("/api/products/{id}/stock-history", id))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$", hasSize(1)))
-        .andExpect(jsonPath("$[0].productId", is(id.intValue())))
-        .andExpect(jsonPath("$[0].delta", is(5)))
-        .andExpect(jsonPath("$[0].resultingQuantity", is(15)))
-        .andExpect(jsonPath("$[0].timestamp").exists());
+        .andExpect(jsonPath("$.content", hasSize(1)))
+        .andExpect(jsonPath("$.content[0].productId", is(id.intValue())))
+        .andExpect(jsonPath("$.content[0].delta", is(5)))
+        .andExpect(jsonPath("$.content[0].resultingQuantity", is(15)))
+        .andExpect(jsonPath("$.content[0].timestamp").exists());
   }
 
   @Test
@@ -561,11 +561,45 @@ class ProductControllerTest {
     mockMvc
         .perform(get("/api/products/{id}/stock-history", id))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$", hasSize(2)))
-        .andExpect(jsonPath("$[0].delta", is(-3)))
-        .andExpect(jsonPath("$[0].resultingQuantity", is(12)))
-        .andExpect(jsonPath("$[1].delta", is(5)))
-        .andExpect(jsonPath("$[1].resultingQuantity", is(15)));
+        .andExpect(jsonPath("$.content", hasSize(2)))
+        .andExpect(jsonPath("$.content[0].delta", is(-3)))
+        .andExpect(jsonPath("$.content[0].resultingQuantity", is(12)))
+        .andExpect(jsonPath("$.content[1].delta", is(5)))
+        .andExpect(jsonPath("$.content[1].resultingQuantity", is(15)));
+  }
+
+  @Test
+  void getStockHistorySupportsPagination() throws Exception {
+    ProductRequest request = validRequest("CTRL-SKU-" + System.nanoTime());
+    request.setStockQuantity(10);
+
+    String body =
+        mockMvc
+            .perform(
+                post("/api/products")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isCreated())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+    Long id = objectMapper.readTree(body).get("id").asLong();
+
+    for (int i = 1; i <= 3; i++) {
+      StockAdjustmentRequest adjustment = new StockAdjustmentRequest();
+      adjustment.setDelta(i);
+      mockMvc.perform(
+          patch("/api/products/{id}/stock", id)
+              .contentType(MediaType.APPLICATION_JSON)
+              .content(objectMapper.writeValueAsString(adjustment)));
+    }
+    mockMvc
+        .perform(get("/api/products/{id}/stock-history", id).param("page", "0").param("size", "2"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content", hasSize(2)))
+        .andExpect(jsonPath("$.totalElements", is(3)))
+        .andExpect(jsonPath("$.totalPages", is(2)));
   }
 
   @Test
@@ -916,7 +950,7 @@ class ProductControllerTest {
             post("/api/products")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request2)))
-            .andExpect(jsonPath("$.warning").doesNotExist());
+        .andExpect(jsonPath("$.warning").doesNotExist());
   }
 
   @Test
@@ -926,42 +960,42 @@ class ProductControllerTest {
     // convert to deep copy
     original = objectMapper.readValue(objectMapper.writeValueAsString(original), Product.class);
     mockMvc
-            .perform(
-                    patch("/api/products/4")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(
-                                    """
+        .perform(
+            patch("/api/products/4")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
                                         {
                                             "name": "Patch test product name",
                                             "description": "Test description."
                                         }
                                         """))
-            .andExpectAll(
-                    jsonPath("$.name", is("Patch test product name")),
-                    jsonPath("$.description", is("Test description.")),
-                    jsonPath("$.sku", is(original.getSku())),
-                    jsonPath("$.category", is(original.getCategory())),
-                    jsonPath("$.price", is(original.getPrice().doubleValue())),
-                    jsonPath("$.stockQuantity", is(original.getStockQuantity())));
+        .andExpectAll(
+            jsonPath("$.name", is("Patch test product name")),
+            jsonPath("$.description", is("Test description.")),
+            jsonPath("$.sku", is(original.getSku())),
+            jsonPath("$.category", is(original.getCategory())),
+            jsonPath("$.price", is(original.getPrice().doubleValue())),
+            jsonPath("$.stockQuantity", is(original.getStockQuantity())));
   }
 
-    @Test
-    void patchProductNoFields() throws Exception {
-        Product original = productRepository.findById(4L).orElseThrow();
+  @Test
+  void patchProductNoFields() throws Exception {
+    Product original = productRepository.findById(4L).orElseThrow();
 
-        // convert to deep copy
-        original = objectMapper.readValue(objectMapper.writeValueAsString(original), Product.class);
+    // convert to deep copy
+    original = objectMapper.readValue(objectMapper.writeValueAsString(original), Product.class);
 
-        mockMvc.perform(patch("/api/products/4").contentType(MediaType.APPLICATION_JSON)
-                .content("{}"))
-                .andExpectAll(
-                        jsonPath("$.name", is(original.getName())),
-                        jsonPath("$.sku", is(original.getSku())),
-                        jsonPath("$.category", is(original.getCategory())),
-                        jsonPath("$.price", is(original.getPrice().doubleValue())),
-                        jsonPath("$.stockQuantity", is(original.getStockQuantity())),
-                        jsonPath("$.description", is(original.getDescription())));
-    }
+    mockMvc
+        .perform(patch("/api/products/4").contentType(MediaType.APPLICATION_JSON).content("{}"))
+        .andExpectAll(
+            jsonPath("$.name", is(original.getName())),
+            jsonPath("$.sku", is(original.getSku())),
+            jsonPath("$.category", is(original.getCategory())),
+            jsonPath("$.price", is(original.getPrice().doubleValue())),
+            jsonPath("$.stockQuantity", is(original.getStockQuantity())),
+            jsonPath("$.description", is(original.getDescription())));
+  }
 
   @Test
   void importProductsAcceptsCsvFile() throws Exception {
@@ -973,16 +1007,11 @@ class ProductControllerTest {
 
     MockMultipartFile file =
         new MockMultipartFile(
-            "file",
-            "products.csv",
-            "text/csv",
-            csv.getBytes(StandardCharsets.UTF_8));
+            "file", "products.csv", "text/csv", csv.getBytes(StandardCharsets.UTF_8));
 
-    ProductImportResponse response =
-        new ProductImportResponse(1, 0, List.of());
+    ProductImportResponse response = new ProductImportResponse(1, 0, List.of());
 
-    when(productImportService.importCsv(any(MultipartFile.class)))
-        .thenReturn(response);
+    when(productImportService.importCsv(any(MultipartFile.class))).thenReturn(response);
 
     mockMvc
         .perform(multipart("/api/products/import").file(file))
@@ -994,9 +1023,7 @@ class ProductControllerTest {
 
   @Test
   void importProductsRequiresFile() throws Exception {
-    mockMvc
-        .perform(multipart("/api/products/import"))
-        .andExpect(status().isBadRequest());
+    mockMvc.perform(multipart("/api/products/import")).andExpect(status().isBadRequest());
   }
 
   @Test
@@ -1009,22 +1036,15 @@ class ProductControllerTest {
 
     MockMultipartFile file =
         new MockMultipartFile(
-            "file",
-            "products.csv",
-            "text/csv",
-            csv.getBytes(StandardCharsets.UTF_8));
+            "file", "products.csv", "text/csv", csv.getBytes(StandardCharsets.UTF_8));
 
     ProductImportError error =
         new ProductImportError(
-            2,
-            ProductImportErrorType.VALIDATION_ERROR,
-            "Name must not be blank");
+            2, ProductImportErrorType.VALIDATION_ERROR, "Name must not be blank");
 
-    ProductImportResponse response =
-        new ProductImportResponse(0, 1, List.of(error));
+    ProductImportResponse response = new ProductImportResponse(0, 1, List.of(error));
 
-    when(productImportService.importCsv(any(MultipartFile.class)))
-        .thenReturn(response);
+    when(productImportService.importCsv(any(MultipartFile.class))).thenReturn(response);
 
     mockMvc
         .perform(multipart("/api/products/import").file(file))
@@ -1034,15 +1054,14 @@ class ProductControllerTest {
         .andExpect(jsonPath("$.errors", hasSize(1)));
   }
 
-@Test
-void importProductsReturnsBadRequestWhenCsvCannotBeRead() throws Exception {
+  @Test
+  void importProductsReturnsBadRequestWhenCsvCannotBeRead() throws Exception {
     MockMultipartFile file =
         new MockMultipartFile(
             "file",
             "products.csv",
             "text/csv",
-            "name,sku,category,price,stockQuantity,description\n"
-                .getBytes(StandardCharsets.UTF_8));
+            "name,sku,category,price,stockQuantity,description\n".getBytes(StandardCharsets.UTF_8));
 
     when(productImportService.importCsv(file))
         .thenThrow(new CsvImportException("Unable to read CSV file", new IOException()));

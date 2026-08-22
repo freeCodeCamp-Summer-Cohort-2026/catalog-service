@@ -4,20 +4,16 @@ import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
-
 import org.springframework.lang.Nullable;
 
 /** Payload for partially updating (PATCH) a product. */
 public class ProductPatchRequest {
 
-  @Nullable
-  private String name;
+  @Nullable private String name;
 
-  @Nullable
-  private String sku;
+  @Nullable private String sku;
 
-  @Nullable
-  private String category;
+  @Nullable private String category;
 
   @Nullable
   @DecimalMin(value = "0.01", message = "Price must be greater than 0.00")

@@ -14,12 +14,12 @@ import com.nhcarrigan.catalogservice.repository.ProductRepository;
 import com.nhcarrigan.catalogservice.repository.StockAdjustmentLogRepository;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.HashSet;
-import java.util.Locale;
 import java.util.stream.Collectors;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -35,8 +35,8 @@ import org.springframework.transaction.annotation.Transactional;
  * Delegates persistence to {@link ProductRepository}.
  *
  * <p>SKU uniqueness is case-insensitive: SKUs are normalized to uppercase before being persisted,
- * so the existing case-sensitive database constraint is sufficient on its own,
- * since no two differently-cased variants of the same SKU can ever both be persisted.
+ * so the existing case-sensitive database constraint is sufficient on its own, since no two
+ * differently-cased variants of the same SKU can ever both be persisted.
  */
 @Service
 public class ProductService {
@@ -80,17 +80,19 @@ public class ProductService {
   /**
    * Retrieves all stock adjustment log rows for a specified product.
    *
-   * <p>If two or more logs' timestamps are tied, then log rows are ordered by log row id(in descending order).
+   * <p>If two or more logs' timestamps are tied, then log rows are ordered by log row id(in
+   * descending order).
    *
    * @param productId the id of the product to be searched
    * @return matching log rows in descending order of timestamp.
-   * @throws com.nhcarrigan.catalogservice.exception.ProductNotFoundException if no product exists with the given id
+   * @throws com.nhcarrigan.catalogservice.exception.ProductNotFoundException if no product exists
+   *     with the given id
    */
-
   @Transactional(readOnly = true)
-  public List<StockAdjustmentLog> getStockHistory(Long productId) {
+  public Page<StockAdjustmentLog> getStockHistory(Long productId, Pageable pageable) {
     findById(productId);
-    return stockAdjustmentLogRepository.findByProductIdOrderByTimestampDescIdDesc(productId);
+    return stockAdjustmentLogRepository.findByProductIdOrderByTimestampDescIdDesc(
+        productId, pageable);
   }
 
   /**
@@ -246,27 +248,24 @@ public class ProductService {
    *     with a different existing product
    */
   @Transactional
-  @CacheEvict(cacheNames = { "products", "product" }, allEntries = true)
+  @CacheEvict(
+      cacheNames = {"products", "product"},
+      allEntries = true)
   public Product patch(Long id, ProductPatchRequest request) {
     Product existing = findById(id);
     String normalizedSku = request.getSku() != null ? normalizeSku(request.getSku()) : null;
 
-    if (request.getSku() != null && !existing.getSku().equalsIgnoreCase(request.getSku())
+    if (request.getSku() != null
+        && !existing.getSku().equalsIgnoreCase(request.getSku())
         && productRepository.existsBySku(normalizedSku)) {
       throw new DuplicateSkuException(normalizedSku);
     }
-    if (request.getName() != null)
-      existing.setName(request.getName());
-    if (request.getSku() != null)
-      existing.setSku(normalizedSku);
-    if (request.getCategory() != null)
-      existing.setCategory(request.getCategory());
-    if (request.getPrice() != null)
-      existing.setPrice(request.getPrice());
-    if (request.getStockQuantity() != null)
-      existing.setStockQuantity(request.getStockQuantity());
-    if (request.getDescription() != null)
-      existing.setDescription(request.getDescription());
+    if (request.getName() != null) existing.setName(request.getName());
+    if (request.getSku() != null) existing.setSku(normalizedSku);
+    if (request.getCategory() != null) existing.setCategory(request.getCategory());
+    if (request.getPrice() != null) existing.setPrice(request.getPrice());
+    if (request.getStockQuantity() != null) existing.setStockQuantity(request.getStockQuantity());
+    if (request.getDescription() != null) existing.setDescription(request.getDescription());
 
     return productRepository.save(existing);
   }
@@ -274,9 +273,8 @@ public class ProductService {
   /**
    * Deletes a product by its id.
    *
-   * <p>Log rows still reference the deleted product's id, but remain meaningful on
-   * their own since each one already captures the product's name and SKU at the
-   * time it was written.
+   * <p>Log rows still reference the deleted product's id, but remain meaningful on their own since
+   * each one already captures the product's name and SKU at the time it was written.
    *
    * @param id the id of the product to delete
    * @throws com.nhcarrigan.catalogservice.exception.ProductNotFoundException if no product exists
@@ -311,7 +309,8 @@ public class ProductService {
     product.setStockQuantity(newQuantity);
     Product savedProduct = productRepository.save(product);
 
-    stockAdjustmentLogRepository.save(new StockAdjustmentLog(id, delta, newQuantity, product.getName(), product.getSku()));
+    stockAdjustmentLogRepository.save(
+        new StockAdjustmentLog(id, delta, newQuantity, product.getName(), product.getSku()));
 
     return savedProduct;
   }
@@ -356,7 +355,9 @@ public class ProductService {
 
       projectedStock.put(productId, newQuantity);
 
-      logs.add(new StockAdjustmentLog(productId, adjustment.delta(), newQuantity, product.getName(), product.getSku()));
+      logs.add(
+          new StockAdjustmentLog(
+              productId, adjustment.delta(), newQuantity, product.getName(), product.getSku()));
     }
 
     // Phase 2: apply changes only after the entire batch is valid.
@@ -419,14 +420,14 @@ public class ProductService {
     return new InventoryValueResponse(totalValue, byCategory);
   }
 
-  private String normalizeSku(String sku){
+  private String normalizeSku(String sku) {
     return sku.toUpperCase(Locale.ROOT);
   }
 
   /**
-   * Searches for products with a stock quantity at or below a certain threshold, given by user or default.
-   * returns a list of products that meet the criteria.
-   * 
+   * Searches for products with a stock quantity at or below a certain threshold, given by user or
+   * default. returns a list of products that meet the criteria.
+   *
    * @param threshold the maximum stock quantity for products to include in the result
    * @return a list of products with a stock quantity at or below the threshold
    */

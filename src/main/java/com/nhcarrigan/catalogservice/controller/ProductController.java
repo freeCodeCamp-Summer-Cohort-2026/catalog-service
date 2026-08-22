@@ -8,8 +8,8 @@ import com.nhcarrigan.catalogservice.dto.ProductPageResponse;
 import com.nhcarrigan.catalogservice.dto.ProductPatchRequest;
 import com.nhcarrigan.catalogservice.dto.ProductRequest;
 import com.nhcarrigan.catalogservice.dto.StockAdjustmentRequest;
+import com.nhcarrigan.catalogservice.dto.StockHistoryPageResponse;
 import com.nhcarrigan.catalogservice.entity.Product;
-import com.nhcarrigan.catalogservice.entity.StockAdjustmentLog;
 import com.nhcarrigan.catalogservice.exception.InvalidSearchCriteriaException;
 import com.nhcarrigan.catalogservice.service.ProductImportService;
 import com.nhcarrigan.catalogservice.service.ProductService;
@@ -17,7 +17,6 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import java.math.BigDecimal;
 import java.util.List;
-
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
@@ -50,8 +49,7 @@ public class ProductController {
   private final ProductImportService productImportService;
 
   public ProductController(
-      ProductService productService,
-      ProductImportService productImportService) {
+      ProductService productService, ProductImportService productImportService) {
     this.productService = productService;
     this.productImportService = productImportService;
   }
@@ -141,17 +139,20 @@ public class ProductController {
    * Returns the stock adjustment history for a product, newest first.
    *
    * @param id the id of the product whose stock history is being requested
+   * @param pageable the pagination information (page number, size, sort)
    * @return the product's stock adjustment history
    * @throws com.nhcarrigan.catalogservice.exception.ProductNotFoundException if no product exists
    *     with the given id
    */
   @GetMapping("/{id}/stock-history")
-  public List<StockAdjustmentLog> getStockHistory(@PathVariable Long id) {
-    return productService.getStockHistory(id);
+  public StockHistoryPageResponse getStockHistory(
+      @PathVariable Long id, @PageableDefault(size = 20) Pageable pageable) {
+    return StockHistoryPageResponse.from(productService.getStockHistory(id, pageable));
   }
 
   /**
-   * Returns products with a stock quantity at or below a certain threshold, provided by user or default.
+   * Returns products with a stock quantity at or below a certain threshold, provided by user or
+   * default.
    *
    * @param threshold the maximum stock quantity for products to include in the result
    * @return a list of products with a stock quantity at or below the threshold
@@ -197,9 +198,7 @@ public class ProductController {
     return ResponseEntity.status(HttpStatus.CREATED).body(productService.bulkCreate(requests));
   }
 
-  @PostMapping(
-      value = "/import",
-      consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+  @PostMapping(value = "/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public ResponseEntity<ProductImportResponse> importProducts(
       @RequestParam("file") MultipartFile file) {
     return ResponseEntity.ok(productImportService.importCsv(file));

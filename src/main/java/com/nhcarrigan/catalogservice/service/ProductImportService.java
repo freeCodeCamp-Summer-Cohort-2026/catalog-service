@@ -16,7 +16,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
-
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -28,9 +27,7 @@ public class ProductImportService {
   private final Validator validator;
 
   public ProductImportService(
-      ProductCsvParser csvParser,
-      Validator validator,
-      ProductService productService) {
+      ProductCsvParser csvParser, Validator validator, ProductService productService) {
     this.csvParser = csvParser;
     this.validator = validator;
     this.productService = productService;
@@ -43,8 +40,7 @@ public class ProductImportService {
    * {@link ProductService#create(ProductRequest)} so normal product creation rules remain
    * centralized.
    */
-  public ProductImportResult importProducts(
-      List<ProductCsvParser.ParsedProductRow> rows) {
+  public ProductImportResult importProducts(List<ProductCsvParser.ParsedProductRow> rows) {
 
     ProductImportValidationResult validationResult = validateRows(rows);
 
@@ -71,8 +67,7 @@ public class ProductImportService {
    *
    * <p>Validation errors are collected per row so that valid rows can continue through the import.
    */
-  public ProductImportValidationResult validateRows(
-      List<ProductCsvParser.ParsedProductRow> rows) {
+  public ProductImportValidationResult validateRows(List<ProductCsvParser.ParsedProductRow> rows) {
 
     List<ProductImportError> errors = new ArrayList<>();
     List<ValidatedProduct> validProducts = new ArrayList<>();
@@ -85,9 +80,7 @@ public class ProductImportService {
 
       String normalizedSku = normalizeSku(request.getSku());
 
-      if (rowErrors.isEmpty()
-          && normalizedSku != null
-          && !seenSkus.add(normalizedSku)) {
+      if (rowErrors.isEmpty() && normalizedSku != null && !seenSkus.add(normalizedSku)) {
         rowErrors.add("Duplicate SKU in import: " + request.getSku());
       }
 
@@ -112,9 +105,7 @@ public class ProductImportService {
       ProductImportResult result = importProducts(rows);
 
       return new ProductImportResponse(
-          result.importedProducts().size(),
-          result.errors().size(),
-          result.errors());
+          result.importedProducts().size(), result.errors().size(), result.errors());
     } catch (IOException exception) {
       throw new CsvImportException("Unable to read CSV file", exception);
     }
