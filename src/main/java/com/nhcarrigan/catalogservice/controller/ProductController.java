@@ -150,6 +150,18 @@ public class ProductController {
     return productService.getStockHistory(id);
   }
 
+    /**
+     * Retrieves a single product by its SKU.
+     *
+     * @param sku the product sku
+     * @return the matching product
+     * @throws com.nhcarrigan.catalogservice.exception.ProductNotFoundException
+     *         if no product exists with the given sku
+     */
+    @GetMapping("/sku/{sku}")
+    public Product getBySku(@PathVariable String sku){
+        return productService.findBySku(sku);
+    }
   /**
    * Returns products with a stock quantity at or below a certain threshold, provided by user or default.
    *

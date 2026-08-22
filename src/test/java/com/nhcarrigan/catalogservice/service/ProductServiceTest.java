@@ -77,11 +77,22 @@ class ProductServiceTest {
     duplicate.setCategory("Test Category");
     duplicate.setPrice(new BigDecimal("5.00"));
     duplicate.setStockQuantity(5);
-
     assertThatThrownBy(() -> productService.create(duplicate))
         .isInstanceOf(DuplicateSkuException.class);
   }
 
+    @Test
+    void findBySkuSuccess(){
+      assertThat(productService.findBySku(testProduct.getSku()).getId()) 
+          .isEqualTo(testProduct.getId());
+    }
+
+    @Test
+    void findBySkuThrowsWhenMissing(){
+      assertThatThrownBy(() -> productService.findBySku("MISSING-SKU-" + System.nanoTime()))
+          .isInstanceOf(ProductNotFoundException.class);
+    }
+    
   @Test
   void findByIdThrowsWhenMissing() {
     assertThatThrownBy(() -> productService.findById(-1L))
