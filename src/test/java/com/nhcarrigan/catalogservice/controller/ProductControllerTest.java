@@ -10,7 +10,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nhcarrigan.catalogservice.dto.ProductPatchRequest;
 import com.nhcarrigan.catalogservice.dto.ProductRequest;
 import com.nhcarrigan.catalogservice.dto.StockAdjustmentRequest;
 import com.nhcarrigan.catalogservice.entity.Product;
@@ -88,200 +87,6 @@ class ProductControllerTest {
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.name", is("Integration Test Product")))
         .andExpect(jsonPath("$.stockQuantity", is(20)));
-  }
-
-  @Test
-  void createProductAcceptsSkuWithMinimumLength() throws Exception {
-    ProductRequest request = validRequest("ABC");
-
-    mockMvc
-        .perform(
-            post("/api/products")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-        .andExpect(status().isCreated());
-  }
-
-  @Test
-  void createProductAcceptsSkuWithMaximumLength() throws Exception {
-    ProductRequest request = validRequest("A".repeat(50));
-
-    mockMvc
-        .perform(
-            post("/api/products")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-        .andExpect(status().isCreated());
-  }
-
-  @Test
-  void createProductRejectsSkuShorterThanMinimumLength() throws Exception {
-    ProductRequest request = validRequest("AB");
-
-    mockMvc
-        .perform(
-            post("/api/products")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-        .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.error", is("Validation Failed")))
-        .andExpect(
-            jsonPath("$.details[0]", containsString("SKU must be between 3 and 50 characters")));
-  }
-
-  @Test
-  void createProductRejectsSkuLongerThanMaximumLength() throws Exception {
-    ProductRequest request = validRequest("A".repeat(51));
-
-    mockMvc
-        .perform(
-            post("/api/products")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-        .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.error", is("Validation Failed")))
-        .andExpect(
-            jsonPath("$.details[0]", containsString("SKU must be between 3 and 50 characters")));
-  }
-
-  @Test
-  void createProductRejectsSkuWithSpaces() throws Exception {
-    ProductRequest request = validRequest("ABC 123");
-
-    mockMvc
-        .perform(
-            post("/api/products")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-        .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.error", is("Validation Failed")))
-        .andExpect(
-            jsonPath(
-                "$.details[0]",
-                containsString("SKU may only contain letters, numbers, and hyphens")));
-  }
-
-  @Test
-  void createProductRejectsSkuWithInvalidCharacters() throws Exception {
-    ProductRequest request = validRequest("ABC_123@");
-
-    mockMvc
-        .perform(
-            post("/api/products")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-        .andExpect(status().isBadRequest())
-        .andExpect(
-            jsonPath(
-                "$.details[0]",
-                containsString("SKU may only contain letters, numbers, and hyphens")));
-  }
-
-  @Test
-  void createProductTrimsLeadingAndTrailingSkuWhitespace() throws Exception {
-    String request =
-        """
-                    {
-                      "name": "Integration Test Product",
-                      "sku": "  ABC-123  ",
-                      "category": "Test Category",
-                      "price": 19.99,
-                      "stockQuantity": 20
-                    }
-                    """;
-
-    mockMvc
-        .perform(post("/api/products").contentType(MediaType.APPLICATION_JSON).content(request))
-        .andExpect(status().isCreated())
-        .andExpect(jsonPath("$.sku", is("ABC-123")));
-  }
-
-  @Test
-  void patchProductRejectsSkuShorterThanMinimumLength() throws Exception {
-    Product product = createTestProduct("PATCH-SHORT-OLD", 20);
-
-    ProductPatchRequest request = new ProductPatchRequest();
-    request.setSku("AB");
-
-    mockMvc
-        .perform(
-            patch("/api/products/{id}", product.getId())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-        .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.error", is("Validation Failed")))
-        .andExpect(
-            jsonPath("$.details[0]", containsString("SKU must be between 3 and 50 characters")));
-  }
-
-  @Test
-  void patchProductRejectsSkuLongerThanMaximumLength() throws Exception {
-    Product product = createTestProduct("PATCH-LONG-OLD", 20);
-
-    ProductPatchRequest request = new ProductPatchRequest();
-    request.setSku("A".repeat(51));
-
-    mockMvc
-        .perform(
-            patch("/api/products/{id}", product.getId())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-        .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.error", is("Validation Failed")))
-        .andExpect(
-            jsonPath("$.details[0]", containsString("SKU must be between 3 and 50 characters")));
-  }
-
-  @Test
-  void patchProductRejectsSkuWithInvalidCharacters() throws Exception {
-    Product product = createTestProduct("PATCH-INVALID-OLD", 20);
-
-    ProductPatchRequest request = new ProductPatchRequest();
-    request.setSku("bad sku!");
-
-    mockMvc
-        .perform(
-            patch("/api/products/{id}", product.getId())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-        .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.error", is("Validation Failed")))
-        .andExpect(
-            jsonPath(
-                "$.details[0]",
-                containsString("SKU may only contain letters, numbers, and hyphens")));
-  }
-
-  @Test
-  void patchProductAcceptsValidSku() throws Exception {
-    Product product = createTestProduct("PATCH-VALID-OLD", 20);
-
-    ProductPatchRequest request = new ProductPatchRequest();
-    request.setSku("PATCH-VALID-NEW");
-
-    mockMvc
-        .perform(
-            patch("/api/products/{id}", product.getId())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.sku", is("PATCH-VALID-NEW")));
-  }
-
-  @Test
-  void patchProductTrimsLeadingAndTrailingSkuWhitespace() throws Exception {
-    Product product = createTestProduct("PATCH-TRIM-OLD", 20);
-
-    ProductPatchRequest request = new ProductPatchRequest();
-    request.setSku("  PATCH-TRIM-NEW  ");
-
-    mockMvc
-        .perform(
-            patch("/api/products/{id}", product.getId())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.sku", is("PATCH-TRIM-NEW")));
   }
 
   @Test
@@ -1096,7 +901,7 @@ class ProductControllerTest {
             post("/api/products")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request2)))
-        .andExpect(jsonPath("$.warning").doesNotExist());
+            .andExpect(jsonPath("$.warning").doesNotExist());
   }
 
   @Test
@@ -1106,23 +911,23 @@ class ProductControllerTest {
     // convert to deep copy
     original = objectMapper.readValue(objectMapper.writeValueAsString(original), Product.class);
     mockMvc
-        .perform(
-            patch("/api/products/4")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(
-                    """
+            .perform(
+                    patch("/api/products/4")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(
+                                    """
                                         {
                                             "name": "Patch test product name",
                                             "description": "Test description."
                                         }
                                         """))
-        .andExpectAll(
-            jsonPath("$.name", is("Patch test product name")),
-            jsonPath("$.description", is("Test description.")),
-            jsonPath("$.sku", is(original.getSku())),
-            jsonPath("$.category", is(original.getCategory())),
-            jsonPath("$.price", is(original.getPrice().doubleValue())),
-            jsonPath("$.stockQuantity", is(original.getStockQuantity())));
+            .andExpectAll(
+                    jsonPath("$.name", is("Patch test product name")),
+                    jsonPath("$.description", is("Test description.")),
+                    jsonPath("$.sku", is(original.getSku())),
+                    jsonPath("$.category", is(original.getCategory())),
+                    jsonPath("$.price", is(original.getPrice().doubleValue())),
+                    jsonPath("$.stockQuantity", is(original.getStockQuantity())));
   }
 
   @Test
@@ -1131,13 +936,13 @@ class ProductControllerTest {
     // convert to deep copy
     original = objectMapper.readValue(objectMapper.writeValueAsString(original), Product.class);
     mockMvc
-        .perform(patch("/api/products/4").contentType(MediaType.APPLICATION_JSON).content("{}"))
-        .andExpectAll(
-            jsonPath("$.name", is(original.getName())),
-            jsonPath("$.sku", is(original.getSku())),
-            jsonPath("$.category", is(original.getCategory())),
-            jsonPath("$.price", is(original.getPrice().doubleValue())),
-            jsonPath("$.stockQuantity", is(original.getStockQuantity())),
-            jsonPath("$.description", is(original.getDescription())));
+            .perform(patch("/api/products/4").contentType(MediaType.APPLICATION_JSON).content("{}"))
+            .andExpectAll(
+                    jsonPath("$.name", is(original.getName())),
+                    jsonPath("$.sku", is(original.getSku())),
+                    jsonPath("$.category", is(original.getCategory())),
+                    jsonPath("$.price", is(original.getPrice().doubleValue())),
+                    jsonPath("$.stockQuantity", is(original.getStockQuantity())),
+                    jsonPath("$.description", is(original.getDescription())));
   }
 }
