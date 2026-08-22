@@ -313,14 +313,14 @@ public class ProductService {
       throw new InsufficientStockException(id, product.getStockQuantity(), delta);
     }
 
-    if (product.getStockQuantity() > 0 && newQuantity == 0) {
-      eventPublisher.publishEvent(new StockDepletedEvent(id));
-    }
-
     product.setStockQuantity(newQuantity);
     Product savedProduct = productRepository.save(product);
 
     stockAdjustmentLogRepository.save(new StockAdjustmentLog(id, delta, newQuantity, product.getName(), product.getSku()));
+
+    if (product.getStockQuantity() > 0 && newQuantity == 0) {
+      eventPublisher.publishEvent(new StockDepletedEvent(id));
+    }
 
     return savedProduct;
   }
@@ -378,11 +378,15 @@ public class ProductService {
       product.setStockQuantity(finalStock);
 
       if (initialStock > 0 && finalStock == 0) {
-        eventPublisher.publishEvent(new StockDepletedEvent(productId));
+        eventsToPublish.add(new StockDepletedEvent(productId));
       }
     }
 
     stockAdjustmentLogRepository.saveAll(logs);
+
+    for (StockDepletedEvent event : eventsToPublish) {
+      eventPublisher.publishEvent(event);
+    }
 
     return new ArrayList<>(productsById.values());
   }
