@@ -1,5 +1,8 @@
 package com.nhcarrigan.catalogservice.controller;
 
+import static org.mockito.Mockito.doThrow;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -40,6 +43,12 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
+import org.springframework.cache.CacheManager;
+
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
@@ -49,9 +58,11 @@ class ProductControllerTest {
 
   @Autowired private ObjectMapper objectMapper;
 
-  @Autowired private ProductRepository productRepository;
-
   @MockBean private ProductImportService productImportService;
+
+  @SpyBean private ProductRepository productRepository;
+
+  @Autowired private CacheManager cacheManager;
 
   private ProductRequest validRequest(String sku) {
     ProductRequest request = new ProductRequest();
@@ -1034,8 +1045,8 @@ class ProductControllerTest {
         .andExpect(jsonPath("$.errors", hasSize(1)));
   }
 
-@Test
-void importProductsReturnsBadRequestWhenCsvCannotBeRead() throws Exception {
+  @Test
+  void importProductsReturnsBadRequestWhenCsvCannotBeRead() throws Exception {
     MockMultipartFile file =
         new MockMultipartFile(
             "file",
@@ -1053,5 +1064,25 @@ void importProductsReturnsBadRequestWhenCsvCannotBeRead() throws Exception {
         .andExpect(jsonPath("$.status", is(400)))
         .andExpect(jsonPath("$.error", is("Bad Request")))
         .andExpect(jsonPath("$.message", is("Unable to read CSV file")));
+  }
+
+  @Test
+  void unexpectedExceptionReturns500WithApiError() throws Exception {
+     cacheManager.getCache("product").clear();
+
+     doThrow(new RuntimeException("simulated unexpected failure"))
+      .when(productRepository)
+      .findById(1L);
+
+
+    mockMvc
+      .perform(get("/api/products/1"))
+      .andExpect(status().isInternalServerError())
+      .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+      .andExpect(jsonPath("$.timestamp").exists())
+      .andExpect(jsonPath("$.status", is(500)))
+      .andExpect(jsonPath("$.error", is("Internal Server Error")))
+      .andExpect(jsonPath("$.message", is("An unexpected error occurred")))
+      .andExpect(jsonPath("$.details").exists());
   }
 }

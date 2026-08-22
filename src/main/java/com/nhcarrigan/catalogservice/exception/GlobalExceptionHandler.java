@@ -1,6 +1,8 @@
 package com.nhcarrigan.catalogservice.exception;
 
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.nhcarrigan.catalogservice.exception.CsvImportException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
@@ -9,9 +11,12 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+  private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
   @ExceptionHandler(MethodArgumentNotValidException.class)
   public ResponseEntity<ApiError> handleValidation(MethodArgumentNotValidException ex) {
@@ -110,5 +115,33 @@ public class GlobalExceptionHandler {
             List.of());
 
     return ResponseEntity.badRequest().body(body);
+  }
+
+  @ExceptionHandler(MissingServletRequestPartException.class)
+  public ResponseEntity<ApiError> handleMissingServletRequestPart(
+    MissingServletRequestPartException ex) {
+
+    ApiError body =
+      new ApiError(
+          HttpStatus.BAD_REQUEST.value(),
+          "Bad Request",
+          ex.getMessage(),
+          List.of());
+
+    return ResponseEntity.badRequest().body(body);
+  }
+
+  @ExceptionHandler(Exception.class)
+  public ResponseEntity<ApiError> handleUnexpectedException(Exception ex) {
+    log.error("Unexpected error while processing request", ex);
+
+    ApiError body =
+      new ApiError(
+          HttpStatus.INTERNAL_SERVER_ERROR.value(),
+          "Internal Server Error",
+          "An unexpected error occurred",
+          List.of());
+
+    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
   }
 }
