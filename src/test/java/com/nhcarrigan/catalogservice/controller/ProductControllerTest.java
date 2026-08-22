@@ -979,23 +979,23 @@ class ProductControllerTest {
             jsonPath("$.stockQuantity", is(original.getStockQuantity())));
   }
 
-    @Test
-    void patchProductNoFields() throws Exception {
-        Product original = productRepository.findById(4L).orElseThrow();
+  @Test
+  void patchProductNoFields() throws Exception {
+    Product original = productRepository.findById(4L).orElseThrow();
 
-        // convert to deep copy
-        original = objectMapper.readValue(objectMapper.writeValueAsString(original), Product.class);
+    // convert to deep copy
+    original = objectMapper.readValue(objectMapper.writeValueAsString(original), Product.class);
 
-        mockMvc.perform(patch("/api/products/4").contentType(MediaType.APPLICATION_JSON)
-                .content("{}"))
-                .andExpectAll(
-                        jsonPath("$.name", is(original.getName())),
-                        jsonPath("$.sku", is(original.getSku())),
-                        jsonPath("$.category", is(original.getCategory())),
-                        jsonPath("$.price", is(original.getPrice().doubleValue())),
-                        jsonPath("$.stockQuantity", is(original.getStockQuantity())),
-                        jsonPath("$.description", is(original.getDescription())));
-    }
+    mockMvc
+        .perform(patch("/api/products/4").contentType(MediaType.APPLICATION_JSON).content("{}"))
+        .andExpectAll(
+            jsonPath("$.name", is(original.getName())),
+            jsonPath("$.sku", is(original.getSku())),
+            jsonPath("$.category", is(original.getCategory())),
+            jsonPath("$.price", is(original.getPrice().doubleValue())),
+            jsonPath("$.stockQuantity", is(original.getStockQuantity())),
+            jsonPath("$.description", is(original.getDescription())));
+  }
 
   @Test
   void importProductsAcceptsCsvFile() throws Exception {
@@ -1007,16 +1007,11 @@ class ProductControllerTest {
 
     MockMultipartFile file =
         new MockMultipartFile(
-            "file",
-            "products.csv",
-            "text/csv",
-            csv.getBytes(StandardCharsets.UTF_8));
+            "file", "products.csv", "text/csv", csv.getBytes(StandardCharsets.UTF_8));
 
-    ProductImportResponse response =
-        new ProductImportResponse(1, 0, List.of());
+    ProductImportResponse response = new ProductImportResponse(1, 0, List.of());
 
-    when(productImportService.importCsv(any(MultipartFile.class)))
-        .thenReturn(response);
+    when(productImportService.importCsv(any(MultipartFile.class))).thenReturn(response);
 
     mockMvc
         .perform(multipart("/api/products/import").file(file))
@@ -1028,9 +1023,7 @@ class ProductControllerTest {
 
   @Test
   void importProductsRequiresFile() throws Exception {
-    mockMvc
-        .perform(multipart("/api/products/import"))
-        .andExpect(status().isBadRequest());
+    mockMvc.perform(multipart("/api/products/import")).andExpect(status().isBadRequest());
   }
 
   @Test
@@ -1043,22 +1036,15 @@ class ProductControllerTest {
 
     MockMultipartFile file =
         new MockMultipartFile(
-            "file",
-            "products.csv",
-            "text/csv",
-            csv.getBytes(StandardCharsets.UTF_8));
+            "file", "products.csv", "text/csv", csv.getBytes(StandardCharsets.UTF_8));
 
     ProductImportError error =
         new ProductImportError(
-            2,
-            ProductImportErrorType.VALIDATION_ERROR,
-            "Name must not be blank");
+            2, ProductImportErrorType.VALIDATION_ERROR, "Name must not be blank");
 
-    ProductImportResponse response =
-        new ProductImportResponse(0, 1, List.of(error));
+    ProductImportResponse response = new ProductImportResponse(0, 1, List.of(error));
 
-    when(productImportService.importCsv(any(MultipartFile.class)))
-        .thenReturn(response);
+    when(productImportService.importCsv(any(MultipartFile.class))).thenReturn(response);
 
     mockMvc
         .perform(multipart("/api/products/import").file(file))
@@ -1068,15 +1054,14 @@ class ProductControllerTest {
         .andExpect(jsonPath("$.errors", hasSize(1)));
   }
 
-@Test
-void importProductsReturnsBadRequestWhenCsvCannotBeRead() throws Exception {
+  @Test
+  void importProductsReturnsBadRequestWhenCsvCannotBeRead() throws Exception {
     MockMultipartFile file =
         new MockMultipartFile(
             "file",
             "products.csv",
             "text/csv",
-            "name,sku,category,price,stockQuantity,description\n"
-                .getBytes(StandardCharsets.UTF_8));
+            "name,sku,category,price,stockQuantity,description\n".getBytes(StandardCharsets.UTF_8));
 
     when(productImportService.importCsv(file))
         .thenThrow(new CsvImportException("Unable to read CSV file", new IOException()));

@@ -1,7 +1,7 @@
 package com.nhcarrigan.catalogservice.service;
 
-import java.io.InputStreamReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -40,7 +40,8 @@ public class ProductCsvParser {
 
   List<ParsedProductRow> parse(Reader reader) throws IOException {
     CSVFormat format =
-        CSVFormat.DEFAULT.builder()
+        CSVFormat.DEFAULT
+            .builder()
             .setHeader()
             .setSkipHeaderRecord(true)
             .setIgnoreSurroundingSpaces(false)

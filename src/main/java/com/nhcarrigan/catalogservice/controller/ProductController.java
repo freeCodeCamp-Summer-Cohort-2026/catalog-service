@@ -17,7 +17,6 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import java.math.BigDecimal;
 import java.util.List;
-
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
@@ -50,8 +49,7 @@ public class ProductController {
   private final ProductImportService productImportService;
 
   public ProductController(
-      ProductService productService,
-      ProductImportService productImportService) {
+      ProductService productService, ProductImportService productImportService) {
     this.productService = productService;
     this.productImportService = productImportService;
   }
@@ -153,7 +151,8 @@ public class ProductController {
   }
 
   /**
-   * Returns products with a stock quantity at or below a certain threshold, provided by user or default.
+   * Returns products with a stock quantity at or below a certain threshold, provided by user or
+   * default.
    *
    * @param threshold the maximum stock quantity for products to include in the result
    * @return a list of products with a stock quantity at or below the threshold
@@ -199,9 +198,7 @@ public class ProductController {
     return ResponseEntity.status(HttpStatus.CREATED).body(productService.bulkCreate(requests));
   }
 
-  @PostMapping(
-      value = "/import",
-      consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+  @PostMapping(value = "/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public ResponseEntity<ProductImportResponse> importProducts(
       @RequestParam("file") MultipartFile file) {
     return ResponseEntity.ok(productImportService.importCsv(file));
