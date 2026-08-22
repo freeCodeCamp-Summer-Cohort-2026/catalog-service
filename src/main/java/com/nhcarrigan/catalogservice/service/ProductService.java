@@ -12,6 +12,7 @@ import com.nhcarrigan.catalogservice.exception.InvalidPriceRangeException;
 import com.nhcarrigan.catalogservice.exception.ProductNotFoundException;
 import com.nhcarrigan.catalogservice.repository.ProductRepository;
 import com.nhcarrigan.catalogservice.repository.StockAdjustmentLogRepository;
+import com.nhcarrigan.catalogservice.event.StockDepletedEvent;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -27,6 +28,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.context.ApplicationEventPublisher;
 
 /**
  * Business logic for managing {@link Product} entities: enforces SKU uniqueness, looks products up
@@ -43,12 +45,15 @@ public class ProductService {
 
   private final ProductRepository productRepository;
   private final StockAdjustmentLogRepository stockAdjustmentLogRepository;
+  private final ApplicationEventPublisher eventPublisher;
 
   public ProductService(
       ProductRepository productRepository,
-      StockAdjustmentLogRepository stockAdjustmentLogRepository) {
+      StockAdjustmentLogRepository stockAdjustmentLogRepository,
+      ApplicationEventPublisher eventPublisher) {
     this.productRepository = productRepository;
     this.stockAdjustmentLogRepository = stockAdjustmentLogRepository;
+    this.eventPublisher = eventPublisher;
   }
 
   /**
@@ -313,6 +318,10 @@ public class ProductService {
 
     stockAdjustmentLogRepository.save(new StockAdjustmentLog(id, delta, newQuantity, product.getName(), product.getSku()));
 
+    if (product.getStockQuantity() > 0 && newQuantity == 0) {
+      eventPublisher.publishEvent(new StockDepletedEvent(id));
+    }
+
     return savedProduct;
   }
 
@@ -362,10 +371,22 @@ public class ProductService {
     // Phase 2: apply changes only after the entire batch is valid.
     for (Map.Entry<Long, Product> entry : productsById.entrySet()) {
       Product product = entry.getValue();
-      product.setStockQuantity(projectedStock.get(entry.getKey()));
+      Long productId = entry.getKey();
+      int initialStock = product.getStockQuantity();
+      int finalStock = projectedStock.get(productId);
+
+      product.setStockQuantity(finalStock);
+
+      if (initialStock > 0 && finalStock == 0) {
+        eventsToPublish.add(new StockDepletedEvent(productId));
+      }
     }
 
     stockAdjustmentLogRepository.saveAll(logs);
+
+    for (StockDepletedEvent event : eventsToPublish) {
+      eventPublisher.publishEvent(event);
+    }
 
     return new ArrayList<>(productsById.values());
   }
